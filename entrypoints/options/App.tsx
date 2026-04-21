@@ -41,9 +41,9 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("general");
 
   return (
-    <div className="flex min-h-screen">
-      <nav className="w-56 bg-white border-r border-gray-200 p-4 space-y-1">
-        <h1 className="text-lg font-bold text-gray-900 mb-6 px-3">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
+      <nav className="w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-4 space-y-1">
+        <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6 px-3">
           AutoScroll Pro
         </h1>
         {TABS.map(({ id, label, icon: Icon }) => (
@@ -52,8 +52,8 @@ export default function App() {
             onClick={() => setTab(id)}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
               tab === id
-                ? "bg-emerald-50 text-emerald-700 font-medium"
-                : "text-gray-600 hover:bg-gray-50"
+                ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 font-medium"
+                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
             }`}
           >
             <Icon size={18} />
@@ -93,8 +93,8 @@ function GeneralSettings() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">General</h2>
-        <p className="text-sm text-gray-500">Default scrolling behavior</p>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">General</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Default scrolling behavior</p>
       </div>
 
       <Section title="Speed & Mode">
@@ -110,7 +110,7 @@ function GeneralSettings() {
               }
               className="flex-1 accent-emerald-500"
             />
-            <span className="text-sm font-mono w-8 text-right">
+            <span className="text-sm font-mono w-8 text-right text-gray-900 dark:text-gray-100">
               {config.speed}
             </span>
           </div>
@@ -213,7 +213,7 @@ function GeneralSettings() {
       </Section>
 
       <Section title="Speed Zones">
-        <p className="text-sm text-gray-500 mb-3">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
           Default speed per detected content type
         </p>
         {(Object.keys(zones) as ContentType[]).map((type) => (
@@ -229,7 +229,7 @@ function GeneralSettings() {
                 }
                 className="flex-1 accent-emerald-500"
               />
-              <span className="text-sm font-mono w-8 text-right">
+              <span className="text-sm font-mono w-8 text-right text-gray-900 dark:text-gray-100">
                 {zones[type]}
               </span>
             </div>
@@ -323,23 +323,23 @@ function ProfileSettings() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">
             Profiles
           </h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Per-site scroll configurations
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={importProfiles}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
           >
             <Upload size={14} /> Import
           </button>
           <button
             onClick={exportProfiles}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
           >
             <Download size={14} /> Export
           </button>
@@ -361,7 +361,7 @@ function ProfileSettings() {
       )}
 
       {list.length === 0 && !editing && (
-        <p className="text-gray-400 text-center py-12">
+        <p className="text-gray-400 dark:text-gray-500 text-center py-12">
           No profiles yet. Create one to save per-site settings.
         </p>
       )}
@@ -369,18 +369,18 @@ function ProfileSettings() {
       {list.map((profile) => (
         <div
           key={profile.id}
-          className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200"
+          className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
         >
           <div>
-            <p className="font-medium text-gray-900">{profile.name}</p>
-            <p className="text-sm text-gray-500">
+            <p className="font-medium text-gray-900 dark:text-gray-100">{profile.name}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {profile.sitePatterns.join(", ") || "No site patterns"}
             </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setEditing(profile)}
-              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
+              className="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             >
               Edit
             </button>
@@ -412,7 +412,7 @@ function ProfileEditor({
   );
 
   return (
-    <div className="p-4 bg-white rounded-lg border-2 border-emerald-200 space-y-4">
+    <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border-2 border-emerald-200 dark:border-emerald-800 space-y-4">
       <Field label="Profile Name">
         <input
           type="text"
@@ -476,7 +476,7 @@ function ProfileEditor({
       <div className="flex gap-2 justify-end">
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
+          className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
         >
           Cancel
         </button>
@@ -515,10 +515,10 @@ function ShortcutSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">
           Keyboard Shortcuts
         </h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Customize via browser extension settings
         </p>
       </div>
@@ -527,17 +527,17 @@ function ShortcutSettings() {
         {Object.entries(shortcuts).map(([key, value]) => (
           <div
             key={key}
-            className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+            className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
           >
-            <span className="text-gray-700">{labels[key] ?? key}</span>
-            <kbd className="px-3 py-1 bg-gray-100 rounded text-sm font-mono text-gray-600">
+            <span className="text-gray-700 dark:text-gray-300">{labels[key] ?? key}</span>
+            <kbd className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono text-gray-600 dark:text-gray-400">
               {value}
             </kbd>
           </div>
         ))}
       </div>
 
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-gray-400 dark:text-gray-500">
         To change shortcuts, visit chrome://extensions/shortcuts
       </p>
     </div>
@@ -561,10 +561,10 @@ function AppearanceSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">
           Appearance
         </h2>
-        <p className="text-sm text-gray-500">Theme and visual preferences</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Theme and visual preferences</p>
       </div>
 
       <Section title="Theme">
@@ -575,8 +575,8 @@ function AppearanceSettings() {
               onClick={() => updateTheme(t)}
               className={`flex-1 p-4 rounded-lg border-2 text-center capitalize transition-colors ${
                 currentTheme === t
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                  : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400"
+                  : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300"
               }`}
             >
               {t}
@@ -592,14 +592,14 @@ function AboutSection() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">About</h2>
-        <p className="text-sm text-gray-500">AutoScroll Pro v0.1.0</p>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">About</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">AutoScroll Pro v0.1.0</p>
       </div>
-      <div className="p-4 bg-white rounded-lg border border-gray-200 space-y-2">
-        <p className="text-gray-700">
+      <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 space-y-2">
+        <p className="text-gray-700 dark:text-gray-300">
           Smart auto-scroll for PDFs, manga, blogs, and the web.
         </p>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Supports Chrome, Firefox, and Edge.
         </p>
       </div>
@@ -616,7 +616,7 @@ function Section({
 }) {
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
         {title}
       </h3>
       <div className="space-y-3">{children}</div>
@@ -633,7 +633,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
       {children}
     </div>
   );
@@ -653,15 +653,15 @@ function Toggle({
   return (
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-medium text-gray-700">{label}</p>
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</p>
         {description && (
-          <p className="text-xs text-gray-500">{description}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
         )}
       </div>
       <button
         onClick={() => onChange(!checked)}
         className={`relative w-10 h-5 rounded-full transition-colors ${
-          checked ? "bg-emerald-500" : "bg-gray-300"
+          checked ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
         }`}
       >
         <span

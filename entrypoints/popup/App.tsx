@@ -116,9 +116,9 @@ export default function App() {
   }
 
   return (
-    <div className="p-4 space-y-4 bg-white">
+    <div className="p-4 space-y-4 bg-white dark:bg-gray-900">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-900">AutoScroll Pro</h1>
+        <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">AutoScroll Pro</h1>
         <button
           onClick={toggleScroll}
           className={`p-3 rounded-full transition-colors ${
@@ -133,9 +133,9 @@ export default function App() {
 
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <Gauge size={16} className="text-gray-500" />
-          <span className="text-sm text-gray-600">Speed</span>
-          <span className="ml-auto text-sm font-mono text-gray-900">
+          <Gauge size={16} className="text-gray-500 dark:text-gray-400" />
+          <span className="text-sm text-gray-600 dark:text-gray-400">Speed</span>
+          <span className="ml-auto text-sm font-mono text-gray-900 dark:text-gray-100">
             {config.speed}
           </span>
         </div>
@@ -150,7 +150,7 @@ export default function App() {
       </div>
 
       <div className="space-y-2">
-        <span className="text-sm text-gray-600">Direction</span>
+        <span className="text-sm text-gray-600 dark:text-gray-400">Direction</span>
         <div className="flex gap-2">
           {(Object.keys(DIRECTION_ICONS) as ScrollDirection[]).map((dir) => {
             const Icon = DIRECTION_ICONS[dir];
@@ -160,8 +160,8 @@ export default function App() {
                 onClick={() => updateDirection(dir)}
                 className={`flex-1 p-2 rounded-lg border transition-colors flex items-center justify-center ${
                   config.direction === dir
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                    : "border-gray-200 text-gray-500 hover:border-gray-300"
+                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400"
+                    : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300"
                 }`}
               >
                 <Icon size={18} />
@@ -173,11 +173,11 @@ export default function App() {
 
       {scrolling && (
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-gray-500">
+          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
             <span>Progress</span>
             <span>{Math.round(progress)}%</span>
           </div>
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
             <div
               className="h-full bg-emerald-500 rounded-full transition-all"
               style={{ width: `${progress}%` }}
@@ -186,11 +186,11 @@ export default function App() {
         </div>
       )}
 
-      <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100">
+      <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 pt-2 border-t border-gray-100 dark:border-gray-800">
         <span>Alt+S toggle · Alt+↑↓ speed</span>
         <button
           onClick={() => browser.runtime.openOptionsPage()}
-          className="p-1 hover:text-gray-600 transition-colors"
+          className="p-1 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
         >
           <Settings size={14} />
         </button>
