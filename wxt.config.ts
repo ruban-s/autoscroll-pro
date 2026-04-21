@@ -6,6 +6,9 @@ export default defineConfig({
   vite: () => ({
     plugins: [tailwindcss()],
   }),
+  suppressWarnings: {
+    firefoxDataCollection: true,
+  },
   manifest: {
     name: "AutoScroll Pro",
     description: "Smart auto-scroll for PDFs, manga, blogs, and the web",
