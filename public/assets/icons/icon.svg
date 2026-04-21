@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#ecfdf5"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <!-- Double chevron down indicating scroll -->
+  <g stroke="url(#arrow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <polyline points="42,34 64,56 86,34"/>
+    <polyline points="42,58 64,80 86,58"/>
+  </g>
+  <!-- Speed lines -->
+  <g stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.5">
+    <line x1="34" y1="90" x2="94" y2="90"/>
+    <line x1="44" y1="100" x2="84" y2="100"/>
+  </g>
+</svg>
