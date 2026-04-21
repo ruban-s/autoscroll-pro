@@ -18,4 +18,5 @@ export interface ProtocolMap {
   "profile:save": (profile: ScrollProfile) => void;
   "resume:save": (pos: ResumePosition) => void;
   "resume:get": (url: string) => ResumePosition | null;
+  "resume:restore": (pos: ResumePosition) => void;
 }

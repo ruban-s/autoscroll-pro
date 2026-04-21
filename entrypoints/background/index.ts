@@ -183,6 +183,20 @@ export default defineBackground(() => {
         });
         break;
       }
+      case "resume:get": {
+        const url = message.data as string;
+        resumePositions.getValue().then((all) => {
+          const pos = all[url];
+          if (pos && Date.now() - pos.timestamp < RESUME_POSITION_MAX_AGE_MS) {
+            sender.tab?.id &&
+              browser.tabs.sendMessage(sender.tab.id, {
+                type: "resume:restore",
+                data: pos,
+              }).catch(() => {});
+          }
+        });
+        break;
+      }
     }
   });
 
