@@ -9,6 +9,7 @@ import { RESUME_POSITION_MAX_AGE_MS } from "@/utils/constants";
 import type { ScrollState, ResumePosition } from "@/types";
 
 const tabStates = new Map<number, ScrollState>();
+const tabContentTypes = new Map<number, string>();
 
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(() => {
@@ -44,7 +45,14 @@ export default defineBackground(() => {
         if (state?.isScrolling) {
           await browser.tabs.sendMessage(tab.id, { type: "scroll:stop" });
         } else {
-          await browser.tabs.sendMessage(tab.id, { type: "scroll:start", data: config });
+          const startConfig = { ...config };
+          const ct = tabContentTypes.get(tab.id);
+          if (ct) {
+            const zones = await speedZones.getValue();
+            const zs = zones[ct as keyof typeof zones];
+            if (zs != null) startConfig.speed = zs;
+          }
+          await browser.tabs.sendMessage(tab.id, { type: "scroll:start", data: startConfig });
         }
         break;
       }
@@ -72,7 +80,14 @@ export default defineBackground(() => {
         if (state?.isScrolling) {
           await browser.tabs.sendMessage(tab.id, { type: "scroll:stop" });
         } else {
-          await browser.tabs.sendMessage(tab.id, { type: "scroll:start", data: config });
+          const startConfig = { ...config };
+          const ct = tabContentTypes.get(tab.id);
+          if (ct) {
+            const zones = await speedZones.getValue();
+            const zs = zones[ct as keyof typeof zones];
+            if (zs != null) startConfig.speed = zs;
+          }
+          await browser.tabs.sendMessage(tab.id, { type: "scroll:start", data: startConfig });
         }
         break;
       }
@@ -88,19 +103,48 @@ export default defineBackground(() => {
         await browser.tabs.sendMessage(tab.id, { type: "scroll:updateConfig", data: { speed: newSpeed } });
         break;
       }
-      case "toggle-widget": {
-        await browser.tabs.sendMessage(tab.id, { type: "widget:toggle" });
-        break;
-      }
     }
   });
 
+  async function getActiveTabId(): Promise<number | null> {
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    return tab?.id ?? null;
+  }
+
+  async function sendStartWithZone(tabId: number, message: any) {
+    const contentType = tabContentTypes.get(tabId);
+    if (contentType) {
+      const zones = await speedZones.getValue();
+      const zoneSpeed = zones[contentType as keyof typeof zones];
+      if (zoneSpeed != null && message.data) {
+        message.data.speed = zoneSpeed;
+      }
+    }
+    browser.tabs.sendMessage(tabId, message).catch(() => {});
+  }
+
   browser.runtime.onMessage.addListener((message, sender) => {
     const tabId = sender.tab?.id;
-    if (tabId == null) return;
+
+    if (tabId == null) {
+      if (message.type === "scroll:start" || message.type === "scroll:stop" ||
+          message.type === "scroll:updateConfig") {
+        getActiveTabId().then((id) => {
+          if (!id) return;
+          if (message.type === "scroll:start") {
+            sendStartWithZone(id, message);
+          } else {
+            browser.tabs.sendMessage(id, message).catch(() => {});
+          }
+        });
+      }
+      return;
+    }
 
     switch (message.type) {
       case "scroll:start":
+        sendStartWithZone(tabId, message);
+        break;
       case "scroll:stop":
       case "scroll:updateConfig":
         browser.tabs.sendMessage(tabId, message).catch(() => {});
@@ -110,7 +154,6 @@ export default defineBackground(() => {
         const state = message.data as ScrollState;
         tabStates.set(tabId, state);
         updateBadge(tabId, state);
-        browser.tabs.sendMessage(tabId, message).catch(() => {});
         break;
       }
       case "scroll:finished":
@@ -123,6 +166,7 @@ export default defineBackground(() => {
         break;
       case "content:detected": {
         const detected = message.data as { type: string; confidence: number };
+        tabContentTypes.set(tabId, detected.type);
         speedZones.getValue().then((zones) => {
           const zoneSpeed = zones[detected.type as keyof typeof zones];
           if (zoneSpeed != null) {
@@ -144,6 +188,7 @@ export default defineBackground(() => {
 
   browser.tabs.onRemoved.addListener((tabId) => {
     tabStates.delete(tabId);
+    tabContentTypes.delete(tabId);
   });
 });
 
