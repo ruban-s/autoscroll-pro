@@ -5,7 +5,10 @@ export default defineContentScript({
   matches: ["<all_urls>"],
   cssInjectionMode: "ui",
 
+  allFrames: false,
+
   async main(ctx) {
+    if (window !== window.top) return;
     const ui = await createShadowRootUi(ctx, {
       name: "autoscroll-pro-widget",
       position: "overlay",
