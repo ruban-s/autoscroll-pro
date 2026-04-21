@@ -1,6 +1,14 @@
 import { onMessage } from "@/utils/messaging";
-import { defaultConfig, speedZones, profiles } from "@/utils/storage";
+import {
+  defaultConfig,
+  speedZones,
+  profiles,
+  resumePositions,
+} from "@/utils/storage";
+import { matchProfile } from "@/utils/profiler";
+import { RESUME_POSITION_MAX_AGE_MS } from "@/utils/constants";
 import type { ScrollState } from "@/types";
+import type { ResumePosition } from "@/types";
 
 const tabStates = new Map<number, ScrollState>();
 
@@ -101,6 +109,44 @@ export default defineBackground(() => {
         data: { speed: zoneSpeed },
       });
     }
+  });
+
+  onMessage("profile:getForSite", async ({ data }) => {
+    const url = data as string;
+    const list = await profiles.getValue();
+    return matchProfile(url, list);
+  });
+
+  onMessage("profile:save", async ({ data }) => {
+    const profile = data as any;
+    const list = await profiles.getValue();
+    const idx = list.findIndex((p) => p.id === profile.id);
+    if (idx >= 0) {
+      list[idx] = profile;
+    } else {
+      list.push(profile);
+    }
+    await profiles.setValue(list);
+  });
+
+  onMessage("resume:save", async ({ data }) => {
+    const pos = data as ResumePosition;
+    const all = await resumePositions.getValue();
+    all[pos.url] = pos;
+    await resumePositions.setValue(all);
+  });
+
+  onMessage("resume:get", async ({ data }) => {
+    const url = data as string;
+    const all = await resumePositions.getValue();
+    const pos = all[url];
+    if (!pos) return null;
+    if (Date.now() - pos.timestamp > RESUME_POSITION_MAX_AGE_MS) {
+      delete all[url];
+      await resumePositions.setValue(all);
+      return null;
+    }
+    return pos;
   });
 
   browser.tabs.onRemoved.addListener((tabId) => {
