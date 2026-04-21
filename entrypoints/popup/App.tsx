@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Gauge,
+  Settings,
 } from "lucide-react";
 import { defaultConfig } from "@/utils/storage";
 import type { ScrollConfig, ScrollDirection, ScrollState } from "@/types";
@@ -157,8 +158,14 @@ export default function App() {
         </div>
       )}
 
-      <div className="text-xs text-gray-400 text-center pt-2 border-t border-gray-100">
-        Alt+S to toggle · Alt+↑↓ for speed
+      <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100">
+        <span>Alt+S toggle · Alt+↑↓ speed</span>
+        <button
+          onClick={() => browser.runtime.openOptionsPage()}
+          className="p-1 hover:text-gray-600 transition-colors"
+        >
+          <Settings size={14} />
+        </button>
       </div>
     </div>
   );
