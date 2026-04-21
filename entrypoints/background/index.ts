@@ -13,6 +13,65 @@ import type { ResumePosition } from "@/types";
 const tabStates = new Map<number, ScrollState>();
 
 export default defineBackground(() => {
+  browser.runtime.onInstalled.addListener(() => {
+    browser.contextMenus.create({
+      id: "toggle-scroll",
+      title: "Toggle Auto-Scroll",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "speed-slow",
+      title: "Speed: Slow (15)",
+      contexts: ["page"],
+      parentId: undefined,
+    });
+    browser.contextMenus.create({
+      id: "speed-medium",
+      title: "Speed: Medium (40)",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "speed-fast",
+      title: "Speed: Fast (75)",
+      contexts: ["page"],
+    });
+  });
+
+  browser.contextMenus.onClicked.addListener(async (info, tab) => {
+    if (!tab?.id) return;
+    const config = await defaultConfig.getValue();
+
+    switch (info.menuItemId) {
+      case "toggle-scroll": {
+        const state = tabStates.get(tab.id);
+        if (state?.isScrolling) {
+          await browser.tabs.sendMessage(tab.id, {
+            type: "scroll:stop",
+            data: undefined,
+          });
+        } else {
+          await browser.tabs.sendMessage(tab.id, {
+            type: "scroll:start",
+            data: config,
+          });
+        }
+        break;
+      }
+      case "speed-slow":
+      case "speed-medium":
+      case "speed-fast": {
+        const speeds = { "speed-slow": 15, "speed-medium": 40, "speed-fast": 75 };
+        const speed = speeds[info.menuItemId as keyof typeof speeds];
+        await defaultConfig.setValue({ ...config, speed });
+        await browser.tabs.sendMessage(tab.id, {
+          type: "scroll:updateConfig",
+          data: { speed },
+        });
+        break;
+      }
+    }
+  });
+
   browser.commands.onCommand.addListener(async (command) => {
     const [tab] = await browser.tabs.query({
       active: true,
