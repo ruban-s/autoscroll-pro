@@ -33,6 +33,17 @@ export default function App() {
       .catch((e) => setError(String(e)));
   }, []);
 
+  const sendToBackground = useCallback(
+    async (type: string, data?: unknown) => {
+      try {
+        return await browser.runtime.sendMessage({ type, data });
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
   const sendToTab = useCallback(
     async (type: string, data?: unknown) => {
       const [tab] = await browser.tabs.query({
@@ -68,9 +79,9 @@ export default function App() {
   const toggleScroll = async () => {
     if (!config) return;
     if (scrolling) {
-      await sendToTab("scroll:stop");
+      await sendToBackground("scroll:stop");
     } else {
-      await sendToTab("scroll:start", config);
+      await sendToBackground("scroll:start", config);
     }
     setTimeout(pollState, 100);
   };
@@ -81,7 +92,7 @@ export default function App() {
     setConfig(updated);
     await defaultConfig.setValue(updated);
     if (scrolling) {
-      await sendToTab("scroll:updateConfig", { speed });
+      await sendToBackground("scroll:updateConfig", { speed });
     }
   };
 
@@ -91,7 +102,7 @@ export default function App() {
     setConfig(updated);
     await defaultConfig.setValue(updated);
     if (scrolling) {
-      await sendToTab("scroll:updateConfig", { direction });
+      await sendToBackground("scroll:updateConfig", { direction });
     }
   };
 

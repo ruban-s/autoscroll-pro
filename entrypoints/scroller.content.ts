@@ -39,8 +39,6 @@ export default defineContentScript({
         case "scroll:getState":
           sendResponse(engine.getState());
           return;
-        case "widget:toggle":
-          break;
       }
     });
   },

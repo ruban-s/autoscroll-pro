@@ -14,7 +14,6 @@ export interface ProtocolMap {
     type: ContentType;
     confidence: number;
   }) => void;
-  "widget:toggle": () => void;
   "profile:getForSite": (url: string) => ScrollProfile | null;
   "profile:save": (profile: ScrollProfile) => void;
   "resume:save": (pos: ResumePosition) => void;

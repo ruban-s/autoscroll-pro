@@ -37,10 +37,6 @@ export default defineConfig({
         suggested_key: { default: "Alt+Down" },
         description: "Decrease scroll speed",
       },
-      "toggle-widget": {
-        suggested_key: { default: "Alt+W" },
-        description: "Show/hide floating widget",
-      },
     },
   },
 });
