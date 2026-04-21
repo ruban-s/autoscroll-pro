@@ -6,9 +6,6 @@ export default defineConfig({
   vite: () => ({
     plugins: [tailwindcss()],
   }),
-  suppressWarnings: {
-    firefoxDataCollection: true,
-  },
   manifest: {
     name: "AutoScroll Pro",
     description: "Smart auto-scroll for PDFs, manga, blogs, and the web",
@@ -21,6 +18,10 @@ export default defineConfig({
     browser_specific_settings: {
       gecko: {
         id: "autoscroll-pro@ruban.dev",
+        data_collection_permissions: {
+          required: ["none"],
+          optional: [],
+        },
       },
     },
     permissions: ["activeTab", "scripting", "storage", "contextMenus"],

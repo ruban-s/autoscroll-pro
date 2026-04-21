@@ -52,8 +52,8 @@ export function detectBlog(doc: Document): DetectionResult | null {
   }
 
   const textContent = doc.body?.textContent || "";
-  const htmlLength = doc.body?.innerHTML.length || 1;
-  const textRatio = textContent.length / htmlLength;
+  const rawMarkup = doc.body?.outerHTML || " ";
+  const textRatio = textContent.length / rawMarkup.length;
   if (textRatio > 0.3) {
     confidence += 0.15;
   }
