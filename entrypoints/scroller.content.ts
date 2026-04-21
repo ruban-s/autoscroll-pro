@@ -1,5 +1,4 @@
 import { ScrollEngine } from "@/utils/scroll-engine";
-import { onMessage, sendMessage } from "@/utils/messaging";
 import { defaultConfig } from "@/utils/storage";
 import type { ScrollConfig } from "@/types";
 
@@ -13,31 +12,36 @@ export default defineContentScript({
 
     engine.setCallbacks({
       onStateChange: (state) => {
-        sendMessage("scroll:stateChanged", state).catch(() => {});
+        browser.runtime.sendMessage({ type: "scroll:stateChanged", data: state }).catch(() => {});
       },
       onFinished: () => {
-        sendMessage("scroll:finished", undefined).catch(() => {});
+        browser.runtime.sendMessage({ type: "scroll:finished" }).catch(() => {});
       },
       onInteractionPause: () => {
-        sendMessage("scroll:interactionPause", undefined).catch(() => {});
+        browser.runtime.sendMessage({ type: "scroll:interactionPause" }).catch(() => {});
       },
     });
 
-    onMessage("scroll:start", ({ data }) => {
-      engine.updateConfig(data as ScrollConfig);
-      engine.start();
-    });
+    browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      const { type, data } = message;
 
-    onMessage("scroll:stop", () => {
-      engine.stop();
-    });
-
-    onMessage("scroll:updateConfig", ({ data }) => {
-      engine.updateConfig(data as Partial<ScrollConfig>);
-    });
-
-    onMessage("scroll:getState", () => {
-      return engine.getState();
+      switch (type) {
+        case "scroll:start":
+          engine.updateConfig(data as ScrollConfig);
+          engine.start();
+          break;
+        case "scroll:stop":
+          engine.stop();
+          break;
+        case "scroll:updateConfig":
+          engine.updateConfig(data as Partial<ScrollConfig>);
+          break;
+        case "scroll:getState":
+          sendResponse(engine.getState());
+          return;
+        case "widget:toggle":
+          break;
+      }
     });
   },
 });

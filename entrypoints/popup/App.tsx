@@ -10,6 +10,7 @@ import {
   Settings,
 } from "lucide-react";
 import { defaultConfig } from "@/utils/storage";
+import { DEFAULT_CONFIG } from "@/utils/constants";
 import type { ScrollConfig, ScrollDirection, ScrollState } from "@/types";
 
 const DIRECTION_ICONS = {
@@ -20,12 +21,16 @@ const DIRECTION_ICONS = {
 } as const;
 
 export default function App() {
-  const [config, setConfig] = useState<ScrollConfig | null>(null);
+  const [config, setConfig] = useState<ScrollConfig>(DEFAULT_CONFIG);
   const [scrolling, setScrolling] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    defaultConfig.getValue().then(setConfig);
+    defaultConfig
+      .getValue()
+      .then(setConfig)
+      .catch((e) => setError(String(e)));
   }, []);
 
   const sendToTab = useCallback(
@@ -85,7 +90,14 @@ export default function App() {
     }
   };
 
-  if (!config) return null;
+  if (error) {
+    return (
+      <div className="p-4 text-red-500 text-sm">
+        <p>Error loading config:</p>
+        <pre className="mt-2 text-xs whitespace-pre-wrap">{error}</pre>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-4 bg-white">

@@ -1,227 +1,177 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  Play,
-  Pause,
-  Minus,
-  Plus,
-  ChevronDown,
-  ChevronUp,
-  ChevronLeft,
-  ChevronRight,
-  GripVertical,
-  Minimize2,
-  Maximize2,
-} from "lucide-react";
-import { sendMessage, onMessage } from "@/utils/messaging";
-import { defaultConfig, widgetPosition } from "@/utils/storage";
-import type { ScrollConfig, ScrollDirection, ScrollState } from "@/types";
-
-const DIRECTION_ICONS = {
-  down: ChevronDown,
-  up: ChevronUp,
-  left: ChevronLeft,
-  right: ChevronRight,
-} as const;
+import { useState, useEffect, useRef } from "react";
+import type { ScrollState } from "@/types";
+import { defaultConfig } from "@/utils/storage";
 
 export default function App() {
-  const [config, setConfig] = useState<ScrollConfig | null>(null);
-  const [state, setState] = useState<ScrollState | null>(null);
+  const [scrolling, setScrolling] = useState(false);
+  const [speed, setSpeed] = useState(30);
+  const [progress, setProgress] = useState(0);
   const [minimized, setMinimized] = useState(false);
-  const [pos, setPos] = useState({ x: 20, y: 20 });
+  const [visible, setVisible] = useState(true);
+  const [pos, setPos] = useState({ x: 16, y: 100 });
   const dragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    defaultConfig.getValue().then(setConfig);
-    widgetPosition.getValue().then(setPos);
+    defaultConfig.getValue().then((c) => setSpeed(c.speed)).catch(() => {});
   }, []);
 
   useEffect(() => {
-    const handleMove = (e: MouseEvent) => {
-      if (!dragging.current) return;
-      const x = Math.max(0, Math.min(window.innerWidth - 60, e.clientX - dragOffset.current.x));
-      const y = Math.max(0, Math.min(window.innerHeight - 60, e.clientY - dragOffset.current.y));
-      setPos({ x, y });
-    };
-
-    const handleUp = () => {
-      if (dragging.current) {
-        dragging.current = false;
-        widgetPosition.setValue(pos);
+    const handler = (message: any) => {
+      if (message.type === "scroll:stateChanged") {
+        const s = message.data as ScrollState;
+        setScrolling(s.isScrolling);
+        setSpeed(s.currentSpeed);
+        setProgress(s.progress);
+      }
+      if (message.type === "widget:toggle") {
+        setVisible((v) => !v);
       }
     };
-
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleUp);
-    };
-  }, [pos]);
-
-  const pollState = useCallback(async () => {
-    try {
-      const s = await sendMessage("scroll:getState", undefined);
-      if (s) setState(s as ScrollState);
-    } catch {}
+    browser.runtime.onMessage.addListener(handler);
+    return () => browser.runtime.onMessage.removeListener(handler);
   }, []);
 
   useEffect(() => {
-    pollState();
-    const id = setInterval(pollState, 1000);
-    return () => clearInterval(id);
-  }, [pollState]);
-
-  const handleDragStart = (e: React.MouseEvent) => {
-    dragging.current = true;
-    dragOffset.current = {
-      x: e.clientX - pos.x,
-      y: e.clientY - pos.y,
+    const onMove = (e: MouseEvent) => {
+      if (!dragging.current) return;
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - 56, e.clientX - dragOffset.current.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 56, e.clientY - dragOffset.current.y)),
+      });
     };
+    const onUp = () => { dragging.current = false; };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, []);
+
+  const onDragStart = (e: React.MouseEvent) => {
+    dragging.current = true;
+    dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
     e.preventDefault();
   };
 
-  const toggleScroll = async () => {
-    if (!config) return;
-    if (state?.isScrolling) {
-      await sendMessage("scroll:stop", undefined);
+  const toggle = async () => {
+    const config = await defaultConfig.getValue();
+    if (scrolling) {
+      browser.runtime.sendMessage({ type: "scroll:stop" }).catch(() => {});
     } else {
-      await sendMessage("scroll:start", config);
+      browser.runtime.sendMessage({ type: "scroll:start", data: config }).catch(() => {});
     }
-    pollState();
   };
 
-  const changeSpeed = async (delta: number) => {
-    if (!config) return;
-    const speed = Math.max(1, Math.min(100, config.speed + delta));
-    const updated = { ...config, speed };
-    setConfig(updated);
-    await defaultConfig.setValue(updated);
-    await sendMessage("scroll:updateConfig", { speed });
+  const changeSpeed = (delta: number) => {
+    const newSpeed = Math.max(1, Math.min(100, speed + delta));
+    setSpeed(newSpeed);
+    browser.runtime.sendMessage({ type: "scroll:updateConfig", data: { speed: newSpeed } }).catch(() => {});
   };
 
-  const changeDirection = async (direction: ScrollDirection) => {
-    if (!config) return;
-    const updated = { ...config, direction };
-    setConfig(updated);
-    await defaultConfig.setValue(updated);
-    await sendMessage("scroll:updateConfig", { direction });
-  };
+  if (!visible) return null;
 
-  if (!config) return null;
-
-  const isScrolling = state?.isScrolling ?? false;
-  const progress = state?.progress ?? 0;
-
-  const progressDeg = (progress / 100) * 360;
+  const circumference = 2 * Math.PI * 22;
+  const strokeDash = (progress / 100) * circumference;
 
   return (
     <div
-      ref={containerRef}
-      style={{ left: pos.x, top: pos.y }}
-      className="fixed z-[2147483647] select-none"
+      onMouseDown={onDragStart}
+      style={{
+        position: "fixed",
+        left: pos.x,
+        top: pos.y,
+        zIndex: 2147483647,
+        cursor: "grab",
+        userSelect: "none",
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      }}
     >
-      <div className="bg-gray-900 text-white rounded-2xl shadow-2xl border border-gray-700 overflow-hidden">
-        {/* Drag handle */}
-        <div
-          onMouseDown={handleDragStart}
-          className="flex items-center justify-center gap-1 py-1 cursor-grab active:cursor-grabbing bg-gray-800 hover:bg-gray-750"
-        >
-          <GripVertical size={12} className="text-gray-500" />
+      <div style={{
+        background: "#1a1a2e",
+        borderRadius: 16,
+        padding: minimized ? 8 : 12,
+        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 8,
+      }}>
+        <div style={{ position: "relative", width: 48, height: 48 }}>
+          <svg width="48" height="48" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="22" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+            <circle
+              cx="24" cy="24" r="22"
+              fill="none"
+              stroke={scrolling ? "#10b981" : "rgba(255,255,255,0.2)"}
+              strokeWidth="3"
+              strokeDasharray={`${strokeDash} ${circumference}`}
+              strokeLinecap="round"
+              transform="rotate(-90 24 24)"
+              style={{ transition: "stroke-dasharray 0.3s" }}
+            />
+          </svg>
           <button
-            onClick={() => setMinimized(!minimized)}
-            className="p-0.5 hover:text-emerald-400 transition-colors"
+            onClick={(e) => { e.stopPropagation(); toggle(); }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: scrolling ? "#ef4444" : "#10b981",
+              fontSize: 20,
+            }}
           >
-            {minimized ? <Maximize2 size={10} /> : <Minimize2 size={10} />}
+            {scrolling ? "⏸" : "▶"}
           </button>
         </div>
 
-        <div className="px-3 pb-3 pt-1">
-          {/* Play button with progress ring */}
-          <div className="flex items-center justify-center mb-2">
-            <div className="relative">
-              <svg width="48" height="48" viewBox="0 0 48 48">
-                <circle
-                  cx="24"
-                  cy="24"
-                  r="21"
-                  fill="none"
-                  stroke="#374151"
-                  strokeWidth="3"
-                />
-                <circle
-                  cx="24"
-                  cy="24"
-                  r="21"
-                  fill="none"
-                  stroke="#10b981"
-                  strokeWidth="3"
-                  strokeDasharray={`${(progressDeg / 360) * 132} 132`}
-                  strokeLinecap="round"
-                  transform="rotate(-90 24 24)"
-                  className="transition-all duration-300"
-                />
-              </svg>
-              <button
-                onClick={toggleScroll}
-                className="absolute inset-0 flex items-center justify-center hover:scale-110 transition-transform"
-              >
-                {isScrolling ? (
-                  <Pause size={18} className="text-red-400" />
-                ) : (
-                  <Play size={18} className="text-emerald-400 ml-0.5" />
-                )}
-              </button>
+        {!minimized && (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Btn onClick={() => changeSpeed(-5)}>−</Btn>
+              <span style={{ color: "#fff", fontSize: 13, fontVariantNumeric: "tabular-nums", width: 24, textAlign: "center" }}>
+                {speed}
+              </span>
+              <Btn onClick={() => changeSpeed(5)}>+</Btn>
             </div>
-          </div>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10 }}>
+              {Math.round(progress)}%
+            </span>
+          </>
+        )}
 
-          {!minimized && (
-            <>
-              {/* Speed control */}
-              <div className="flex items-center justify-between mb-2">
-                <button
-                  onClick={() => changeSpeed(-5)}
-                  className="p-1 rounded hover:bg-gray-700 transition-colors"
-                >
-                  <Minus size={14} />
-                </button>
-                <span className="text-xs font-mono tabular-nums w-8 text-center">
-                  {config.speed}
-                </span>
-                <button
-                  onClick={() => changeSpeed(5)}
-                  className="p-1 rounded hover:bg-gray-700 transition-colors"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-
-              {/* Direction */}
-              <div className="grid grid-cols-4 gap-1">
-                {(Object.keys(DIRECTION_ICONS) as ScrollDirection[]).map(
-                  (dir) => {
-                    const Icon = DIRECTION_ICONS[dir];
-                    return (
-                      <button
-                        key={dir}
-                        onClick={() => changeDirection(dir)}
-                        className={`p-1 rounded transition-colors ${
-                          config.direction === dir
-                            ? "bg-emerald-600 text-white"
-                            : "hover:bg-gray-700 text-gray-400"
-                        }`}
-                      >
-                        <Icon size={14} className="mx-auto" />
-                      </button>
-                    );
-                  },
-                )}
-              </div>
-            </>
-          )}
-        </div>
+        <Btn onClick={() => setMinimized(!minimized)} style={{ fontSize: 10, padding: "2px 6px" }}>
+          {minimized ? "▼" : "▲"}
+        </Btn>
       </div>
     </div>
+  );
+}
+
+function Btn({ onClick, children, style }: { onClick: () => void; children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      style={{
+        background: "rgba(255,255,255,0.1)",
+        border: "none",
+        borderRadius: 6,
+        color: "#fff",
+        cursor: "pointer",
+        padding: "4px 8px",
+        fontSize: 14,
+        lineHeight: 1,
+        ...style,
+      }}
+    >
+      {children}
+    </button>
   );
 }

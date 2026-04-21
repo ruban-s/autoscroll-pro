@@ -1,7 +1,11 @@
 import { defineConfig } from "wxt";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
+  vite: () => ({
+    plugins: [tailwindcss()],
+  }),
   manifest: {
     name: "AutoScroll Pro",
     description: "Smart auto-scroll for PDFs, manga, blogs, and the web",
@@ -10,6 +14,11 @@ export default defineConfig({
       "32": "assets/icons/icon-32.png",
       "48": "assets/icons/icon-48.png",
       "128": "assets/icons/icon-128.png",
+    },
+    browser_specific_settings: {
+      gecko: {
+        id: "autoscroll-pro@ruban.dev",
+      },
     },
     permissions: ["activeTab", "scripting", "storage", "contextMenus"],
     commands: {
