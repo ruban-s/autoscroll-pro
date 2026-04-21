@@ -49,7 +49,7 @@ export default function App() {
     [],
   );
 
-  useEffect(() => {
+  const pollState = useCallback(() => {
     sendToTab("scroll:getState").then((state) => {
       if (state) {
         const s = state as ScrollState;
@@ -59,15 +59,20 @@ export default function App() {
     });
   }, [sendToTab]);
 
+  useEffect(() => {
+    pollState();
+    const id = setInterval(pollState, 500);
+    return () => clearInterval(id);
+  }, [pollState]);
+
   const toggleScroll = async () => {
     if (!config) return;
     if (scrolling) {
       await sendToTab("scroll:stop");
-      setScrolling(false);
     } else {
       await sendToTab("scroll:start", config);
-      setScrolling(true);
     }
+    setTimeout(pollState, 100);
   };
 
   const updateSpeed = async (speed: number) => {

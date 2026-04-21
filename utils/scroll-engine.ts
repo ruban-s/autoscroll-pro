@@ -12,6 +12,7 @@ export class ScrollEngine {
   private boundInteractionHandler: () => void;
   private config: ScrollConfig;
   private scrollElement: Element | null = null;
+  private lastEmitTime = 0;
   private onStateChange?: (state: ScrollState) => void;
   private onFinished?: () => void;
   private onInteractionPause?: () => void;
@@ -156,6 +157,11 @@ export class ScrollEngine {
     const pxPerFrame = this.speedToPx(this.config.speed);
     const scrollAmount = pxPerFrame * (delta / 16.67);
     this.scrollBy(scrollAmount);
+
+    if (timestamp - this.lastEmitTime > 500) {
+      this.lastEmitTime = timestamp;
+      this.emitState();
+    }
 
     if (this.isAtEnd()) {
       this.stop();
