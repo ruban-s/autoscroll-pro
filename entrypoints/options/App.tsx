@@ -188,6 +188,12 @@ function GeneralSettings() {
           onChange={(v) => setConfig({ ...config, autoPauseOnInteraction: v })}
         />
         <Toggle
+          label="Focus mode"
+          description="Dim areas outside a reading strip while scrolling"
+          checked={config.focusModeEnabled}
+          onChange={(v) => setConfig({ ...config, focusModeEnabled: v })}
+        />
+        <Toggle
           label="Timer mode"
           description="Stop scrolling after a set duration"
           checked={config.timerEnabled}

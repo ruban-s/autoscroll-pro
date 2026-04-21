@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Gauge,
   Settings,
+  Focus,
 } from "lucide-react";
 import { defaultConfig } from "@/utils/storage";
 import { DEFAULT_CONFIG } from "@/utils/constants";
@@ -106,6 +107,14 @@ export default function App() {
     }
   };
 
+  const toggleFocusMode = async (enabled: boolean) => {
+    if (!config) return;
+    const updated = { ...config, focusModeEnabled: enabled };
+    setConfig(updated);
+    await defaultConfig.setValue(updated);
+    await sendToBackground("scroll:updateConfig", { focusModeEnabled: enabled });
+  };
+
   if (error) {
     return (
       <div className="p-4 text-red-500 text-sm">
@@ -169,6 +178,25 @@ export default function App() {
             );
           })}
         </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Focus size={16} className="text-gray-500 dark:text-gray-400" />
+          <span className="text-sm text-gray-600 dark:text-gray-400">Focus Mode</span>
+        </div>
+        <button
+          onClick={() => toggleFocusMode(!config.focusModeEnabled)}
+          className={`relative w-9 h-5 rounded-full transition-colors ${
+            config.focusModeEnabled ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+              config.focusModeEnabled ? "translate-x-4" : ""
+            }`}
+          />
+        </button>
       </div>
 
       {scrolling && (
