@@ -14,7 +14,10 @@ export default defineContentScript({
       position: "overlay",
       zIndex: 2147483647,
       onMount(container) {
+        container.style.pointerEvents = "none";
         const wrapper = document.createElement("div");
+        wrapper.style.pointerEvents = "auto";
+        wrapper.style.width = "fit-content";
         container.append(wrapper);
         const root = ReactDOM.createRoot(wrapper);
         root.render(<App />);
