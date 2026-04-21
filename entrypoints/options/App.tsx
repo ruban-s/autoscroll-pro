@@ -17,6 +17,8 @@ import {
   speedZones,
   profiles as profilesSetting,
   customShortcuts,
+  widgetVisible,
+  widgetPosition,
 } from "@/utils/storage";
 import { DEFAULT_CONFIG, DEFAULT_SPEED_ZONES } from "@/utils/constants";
 import type {
@@ -545,18 +547,46 @@ function ShortcutSettings() {
   );
 }
 
+type WidgetCorner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+
+const CORNER_POSITIONS: Record<WidgetCorner, { x: number; y: number }> = {
+  "top-left": { x: 16, y: 100 },
+  "top-right": { x: -1, y: 100 },
+  "bottom-left": { x: 16, y: -1 },
+  "bottom-right": { x: -1, y: -1 },
+};
+
 function AppearanceSettings() {
   const [currentTheme, setCurrentTheme] = useState<
     "light" | "dark" | "system"
   >("system");
+  const [showWidget, setShowWidget] = useState(true);
+  const [corner, setCorner] = useState<WidgetCorner>("top-left");
 
   useEffect(() => {
     themeSetting.getValue().then(setCurrentTheme);
+    widgetVisible.getValue().then(setShowWidget);
+    widgetPosition.getValue().then((pos) => {
+      if (pos.x < 100 && pos.y < 200) setCorner("top-left");
+      else if (pos.x >= 100 && pos.y < 200) setCorner("top-right");
+      else if (pos.x < 100) setCorner("bottom-left");
+      else setCorner("bottom-right");
+    });
   }, []);
 
   const updateTheme = async (value: "light" | "dark" | "system") => {
     setCurrentTheme(value);
     await themeSetting.setValue(value);
+  };
+
+  const updateWidgetCorner = async (c: WidgetCorner) => {
+    setCorner(c);
+    await widgetPosition.setValue(CORNER_POSITIONS[c]);
+  };
+
+  const updateWidgetVisible = async (v: boolean) => {
+    setShowWidget(v);
+    await widgetVisible.setValue(v);
   };
 
   return (
@@ -584,6 +614,45 @@ function AppearanceSettings() {
             </button>
           ))}
         </div>
+      </Section>
+
+      <Section title="Floating Widget">
+        <Toggle
+          label="Show floating widget"
+          description="Display the mini scroll controller on pages"
+          checked={showWidget}
+          onChange={updateWidgetVisible}
+        />
+
+        {showWidget && (
+          <Field label="Default Position">
+            <div className="relative w-48 h-32 bg-gray-100 rounded-lg border border-gray-200 mx-auto">
+              <div className="absolute inset-2 border border-dashed border-gray-300 rounded">
+                {(
+                  [
+                    ["top-left", "top-1 left-1"],
+                    ["top-right", "top-1 right-1"],
+                    ["bottom-left", "bottom-1 left-1"],
+                    ["bottom-right", "bottom-1 right-1"],
+                  ] as [WidgetCorner, string][]
+                ).map(([c, cls]) => (
+                  <button
+                    key={c}
+                    onClick={() => updateWidgetCorner(c)}
+                    className={`absolute ${cls} w-6 h-6 rounded-full border-2 transition-colors ${
+                      corner === c
+                        ? "bg-emerald-500 border-emerald-600"
+                        : "bg-white border-gray-300 hover:border-gray-400"
+                    }`}
+                  />
+                ))}
+                <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">
+                  Page
+                </span>
+              </div>
+            </div>
+          </Field>
+        )}
       </Section>
     </div>
   );

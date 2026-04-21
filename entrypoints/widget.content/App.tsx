@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { ScrollState } from "@/types";
-import { defaultConfig } from "@/utils/storage";
+import { defaultConfig, widgetPosition, widgetVisible } from "@/utils/storage";
 
 export default function App() {
   const [scrolling, setScrolling] = useState(false);
@@ -14,6 +14,13 @@ export default function App() {
 
   useEffect(() => {
     defaultConfig.getValue().then((c) => setSpeed(c.speed)).catch(() => {});
+    widgetVisible.getValue().then(setVisible).catch(() => {});
+    widgetPosition.getValue().then((p) => {
+      setPos({
+        x: p.x < 0 ? window.innerWidth - 80 : p.x,
+        y: p.y < 0 ? window.innerHeight - 200 : p.y,
+      });
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
