@@ -212,7 +212,7 @@ export class ScrollEngine {
   }
 
   private getScrollTarget(): Element {
-    return this.scrollElement ?? document.documentElement;
+    return this.scrollElement ?? document.scrollingElement ?? document.documentElement;
   }
 
   private speedToPx(speed: number): number {

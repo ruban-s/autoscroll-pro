@@ -6,17 +6,18 @@ export default defineContentScript({
   matches: ["<all_urls>"],
   runAt: "document_idle",
 
-  async main() {
+  async main(ctx) {
     const config = await defaultConfig.getValue();
     const engine = new ScrollEngine(config);
     let focusOverlay: FocusOverlay | null = null;
     let wasScrolling = false;
 
     function savePosition() {
+      const el = document.scrollingElement ?? document.documentElement;
       const pos: ResumePosition = {
         url: location.href,
-        scrollTop: document.documentElement.scrollTop,
-        scrollLeft: document.documentElement.scrollLeft,
+        scrollTop: el.scrollTop,
+        scrollLeft: el.scrollLeft,
         timestamp: Date.now(),
       };
       browser.runtime.sendMessage({ type: "resume:save", data: pos }).catch(() => {});
@@ -90,6 +91,11 @@ export default defineContentScript({
 
     window.addEventListener("beforeunload", () => {
       if (engine.getState().isScrolling) savePosition();
+    });
+
+    ctx.onInvalidated(() => {
+      engine.destroy();
+      focusOverlay?.hide();
     });
   },
 });
