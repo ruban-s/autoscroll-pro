@@ -179,8 +179,14 @@ export default defineBackground(() => {
         const detected = message.data as { type: string; confidence: number; scrollContainer?: string; nextChapterUrl?: string };
         tabContentTypes.set(tabId, detected.type);
 
-        if (detected.nextChapterUrl) {
-          tabNextChapter.set(tabId, detected.nextChapterUrl);
+        if (detected.nextChapterUrl && sender.tab?.url) {
+          try {
+            const next = new URL(detected.nextChapterUrl, sender.tab.url);
+            const current = new URL(sender.tab.url);
+            if ((next.protocol === "http:" || next.protocol === "https:") && next.origin === current.origin) {
+              tabNextChapter.set(tabId, next.href);
+            }
+          } catch {}
         }
 
         if (detected.scrollContainer) {
