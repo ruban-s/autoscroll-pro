@@ -17,6 +17,7 @@ export interface ScrollConfig {
   focusModeEnabled: boolean;
   timerEnabled: boolean;
   timerDurationMs: number;
+  autoAdvanceEnabled: boolean;
 }
 
 export interface ScrollState {

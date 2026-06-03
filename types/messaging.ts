@@ -14,6 +14,7 @@ export interface ProtocolMap {
     type: ContentType;
     confidence: number;
     scrollContainer?: string;
+    nextChapterUrl?: string;
   }) => void;
   "scroll:setContainer": (selector: string) => void;
   "profile:getForSite": (url: string) => ScrollProfile | null;

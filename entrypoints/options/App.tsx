@@ -194,6 +194,12 @@ function GeneralSettings() {
           onChange={(v) => setConfig({ ...config, focusModeEnabled: v })}
         />
         <Toggle
+          label="Auto-advance chapters"
+          description="Navigate to next chapter when scroll reaches the end (manga/manhwa)"
+          checked={config.autoAdvanceEnabled}
+          onChange={(v) => setConfig({ ...config, autoAdvanceEnabled: v })}
+        />
+        <Toggle
           label="Timer mode"
           description="Stop scrolling after a set duration"
           checked={config.timerEnabled}

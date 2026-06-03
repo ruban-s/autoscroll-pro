@@ -14,6 +14,7 @@ export default defineContentScript({
           type: result.type,
           confidence: result.confidence,
           scrollContainer: result.metadata.scrollContainer,
+          nextChapterUrl: result.metadata.nextChapterUrl,
         },
       }).catch(() => {});
     }

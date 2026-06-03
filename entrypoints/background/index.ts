@@ -10,6 +10,7 @@ import type { ScrollState, ResumePosition } from "@/types";
 
 const tabStates = new Map<number, ScrollState>();
 const tabContentTypes = new Map<number, string>();
+const tabNextChapter = new Map<number, string>();
 
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(() => {
@@ -156,17 +157,31 @@ export default defineBackground(() => {
         updateBadge(tabId, state);
         break;
       }
-      case "scroll:finished":
+      case "scroll:finished": {
         tabStates.delete(tabId);
         browser.action.setBadgeText({ text: "", tabId });
+        const nextUrl = tabNextChapter.get(tabId);
+        if (nextUrl) {
+          defaultConfig.getValue().then((config) => {
+            if (config.autoAdvanceEnabled) {
+              tabNextChapter.delete(tabId);
+              browser.tabs.update(tabId, { url: nextUrl });
+            }
+          });
+        }
         break;
+      }
       case "scroll:interactionPause":
         browser.action.setBadgeText({ text: "||", tabId });
         browser.action.setBadgeBackgroundColor({ color: "#f59e0b", tabId });
         break;
       case "content:detected": {
-        const detected = message.data as { type: string; confidence: number; scrollContainer?: string };
+        const detected = message.data as { type: string; confidence: number; scrollContainer?: string; nextChapterUrl?: string };
         tabContentTypes.set(tabId, detected.type);
+
+        if (detected.nextChapterUrl) {
+          tabNextChapter.set(tabId, detected.nextChapterUrl);
+        }
 
         if (detected.scrollContainer) {
           browser.tabs.sendMessage(tabId, {
@@ -236,6 +251,7 @@ export default defineBackground(() => {
   browser.tabs.onRemoved.addListener((tabId) => {
     tabStates.delete(tabId);
     tabContentTypes.delete(tabId);
+    tabNextChapter.delete(tabId);
   });
 });
 

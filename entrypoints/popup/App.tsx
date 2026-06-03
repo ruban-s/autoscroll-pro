@@ -9,6 +9,7 @@ import {
   Gauge,
   Settings,
   Focus,
+  SkipForward,
 } from "lucide-react";
 import { defaultConfig } from "@/utils/storage";
 import { DEFAULT_CONFIG } from "@/utils/constants";
@@ -115,6 +116,13 @@ export default function App() {
     await sendToBackground("scroll:updateConfig", { focusModeEnabled: enabled });
   };
 
+  const toggleAutoAdvance = async (enabled: boolean) => {
+    if (!config) return;
+    const updated = { ...config, autoAdvanceEnabled: enabled };
+    setConfig(updated);
+    await defaultConfig.setValue(updated);
+  };
+
   if (error) {
     return (
       <div className="p-4 text-red-500 text-sm">
@@ -194,6 +202,25 @@ export default function App() {
           <span
             className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
               config.focusModeEnabled ? "translate-x-4" : ""
+            }`}
+          />
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <SkipForward size={16} className="text-gray-500 dark:text-gray-400" />
+          <span className="text-sm text-gray-600 dark:text-gray-400">Auto-Advance</span>
+        </div>
+        <button
+          onClick={() => toggleAutoAdvance(!config.autoAdvanceEnabled)}
+          className={`relative w-9 h-5 rounded-full transition-colors ${
+            config.autoAdvanceEnabled ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+              config.autoAdvanceEnabled ? "translate-x-4" : ""
             }`}
           />
         </button>
