@@ -26,6 +26,7 @@ export default function App() {
   const [config, setConfig] = useState<ScrollConfig>(DEFAULT_CONFIG);
   const [scrolling, setScrolling] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [contentType, setContentType] = useState<string>("general");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export default function App() {
         const s = state as ScrollState;
         setScrolling(s.isScrolling);
         setProgress(s.progress);
+        setContentType(s.contentType);
       }
     });
   }, [sendToTab]);
@@ -135,7 +137,14 @@ export default function App() {
   return (
     <div className="p-4 space-y-4 bg-white dark:bg-gray-900">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">AutoScroll Pro</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">AutoScroll Pro</h1>
+          {contentType !== "general" && (
+            <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 uppercase">
+              {contentType}
+            </span>
+          )}
+        </div>
         <button
           onClick={toggleScroll}
           className={`p-3 rounded-full transition-colors ${
