@@ -13,7 +13,9 @@ export interface ProtocolMap {
   "content:detected": (result: {
     type: ContentType;
     confidence: number;
+    scrollContainer?: string;
   }) => void;
+  "scroll:setContainer": (selector: string) => void;
   "profile:getForSite": (url: string) => ScrollProfile | null;
   "profile:save": (profile: ScrollProfile) => void;
   "resume:save": (pos: ResumePosition) => void;

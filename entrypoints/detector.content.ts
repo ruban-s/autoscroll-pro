@@ -10,7 +10,11 @@ export default defineContentScript({
     if (result.type !== "general" && result.confidence >= 0.3) {
       browser.runtime.sendMessage({
         type: "content:detected",
-        data: { type: result.type, confidence: result.confidence },
+        data: {
+          type: result.type,
+          confidence: result.confidence,
+          scrollContainer: result.metadata.scrollContainer,
+        },
       }).catch(() => {});
     }
   },

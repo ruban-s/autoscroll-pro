@@ -1,10 +1,8 @@
 import {
   defaultConfig,
   speedZones,
-  profiles,
   resumePositions,
 } from "@/utils/storage";
-import { matchProfile } from "@/utils/profiler";
 import { RESUME_POSITION_MAX_AGE_MS } from "@/utils/constants";
 import type { ScrollState, ResumePosition } from "@/types";
 
@@ -165,14 +163,23 @@ export default defineBackground(() => {
         browser.action.setBadgeBackgroundColor({ color: "#f59e0b", tabId });
         break;
       case "content:detected": {
-        const detected = message.data as { type: string; confidence: number };
+        const detected = message.data as { type: string; confidence: number; scrollContainer?: string };
         tabContentTypes.set(tabId, detected.type);
+
+        if (detected.scrollContainer) {
+          browser.tabs.sendMessage(tabId, {
+            type: "scroll:setContainer",
+            data: detected.scrollContainer,
+          }).catch(() => {});
+        }
+
         speedZones.getValue().then((zones) => {
           const zoneSpeed = zones[detected.type as keyof typeof zones];
           if (zoneSpeed != null) {
             browser.tabs.sendMessage(tabId, { type: "scroll:updateConfig", data: { speed: zoneSpeed } });
           }
         });
+
         break;
       }
       case "resume:save": {

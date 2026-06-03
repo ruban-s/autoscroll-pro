@@ -73,6 +73,12 @@ export default defineContentScript({
           }
           break;
         }
+        case "scroll:setContainer": {
+          const selector = data as string;
+          const container = document.querySelector(selector);
+          if (container) engine.setScrollElement(container);
+          break;
+        }
         case "scroll:getState":
           sendResponse(engine.getState());
           return;
