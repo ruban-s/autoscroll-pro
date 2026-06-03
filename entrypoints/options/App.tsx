@@ -602,6 +602,48 @@ function AppearanceSettings() {
 
 function AboutSection() {
   const version = browser.runtime.getManifest().version;
+  const [status, setStatus] = useState<string | null>(null);
+
+  const exportAll = async () => {
+    const data = {
+      config: await defaultConfig.getValue(),
+      speedZones: await speedZones.getValue(),
+      profiles: await profilesSetting.getValue(),
+      theme: await themeSetting.getValue(),
+      shortcuts: await customShortcuts.getValue(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "autoscroll-settings.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importAll = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        if (data.config) await defaultConfig.setValue(data.config);
+        if (data.speedZones) await speedZones.setValue(data.speedZones);
+        if (data.profiles) await profilesSetting.setValue(data.profiles);
+        if (data.theme) await themeSetting.setValue(data.theme);
+        if (data.shortcuts) await customShortcuts.setValue(data.shortcuts);
+        setStatus("Imported!");
+        setTimeout(() => setStatus(null), 2000);
+      } catch {
+        setStatus("Invalid file");
+        setTimeout(() => setStatus(null), 2000);
+      }
+    };
+    input.click();
+  };
 
   return (
     <div className="space-y-6">
@@ -617,6 +659,26 @@ function AboutSection() {
           Supports Chrome, Firefox, and Edge.
         </p>
       </div>
+
+      <Section title="Data">
+        <div className="flex gap-2">
+          <button
+            onClick={exportAll}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
+          >
+            <Download size={14} /> Export All Settings
+          </button>
+          <button
+            onClick={importAll}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
+          >
+            <Upload size={14} /> Import Settings
+          </button>
+          {status && (
+            <span className="text-sm text-emerald-500 self-center">{status}</span>
+          )}
+        </div>
+      </Section>
     </div>
   );
 }
