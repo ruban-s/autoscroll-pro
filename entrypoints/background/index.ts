@@ -11,6 +11,7 @@ import type { ScrollState, ResumePosition } from "@/types";
 const tabStates = new Map<number, ScrollState>();
 const tabContentTypes = new Map<number, string>();
 const tabNextChapter = new Map<number, string>();
+const tabAutoStartPending = new Set<number>();
 
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(() => {
@@ -165,6 +166,7 @@ export default defineBackground(() => {
           defaultConfig.getValue().then((config) => {
             if (config.autoAdvanceEnabled) {
               tabNextChapter.delete(tabId);
+              tabAutoStartPending.add(tabId);
               browser.tabs.update(tabId, { url: nextUrl });
             }
           });
@@ -215,6 +217,17 @@ export default defineBackground(() => {
             }
           });
         }
+
+        if (tabAutoStartPending.has(tabId)) {
+          tabAutoStartPending.delete(tabId);
+          defaultConfig.getValue().then(async (config) => {
+            const startConfig = { ...config };
+            const zones = await speedZones.getValue();
+            const zoneSpeed = zones[detected.type as keyof typeof zones];
+            if (zoneSpeed != null) startConfig.speed = zoneSpeed;
+            browser.tabs.sendMessage(tabId, { type: "scroll:start", data: startConfig }).catch(() => {});
+          });
+        }
         break;
       }
       case "profile:getForSite": {
@@ -258,6 +271,7 @@ export default defineBackground(() => {
     tabStates.delete(tabId);
     tabContentTypes.delete(tabId);
     tabNextChapter.delete(tabId);
+    tabAutoStartPending.delete(tabId);
   });
 });
 
