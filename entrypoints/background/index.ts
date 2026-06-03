@@ -1,8 +1,10 @@
 import {
   defaultConfig,
   speedZones,
+  profiles,
   resumePositions,
 } from "@/utils/storage";
+import { matchProfile } from "@/utils/profiler";
 import { RESUME_POSITION_MAX_AGE_MS } from "@/utils/constants";
 import type { ScrollState, ResumePosition } from "@/types";
 
@@ -180,6 +182,30 @@ export default defineBackground(() => {
           }
         });
 
+        const url = sender.tab?.url;
+        if (url) {
+          profiles.getValue().then((list) => {
+            const match = matchProfile(url, list);
+            if (match && Object.keys(match.config).length > 0) {
+              browser.tabs.sendMessage(tabId, {
+                type: "scroll:updateConfig",
+                data: match.config,
+              }).catch(() => {});
+            }
+          });
+        }
+        break;
+      }
+      case "profile:getForSite": {
+        const url = message.data as string;
+        profiles.getValue().then((list) => {
+          const match = matchProfile(url, list);
+          sender.tab?.id &&
+            browser.tabs.sendMessage(sender.tab.id, {
+              type: "scroll:updateConfig",
+              data: match?.config ?? {},
+            }).catch(() => {});
+        });
         break;
       }
       case "resume:save": {
