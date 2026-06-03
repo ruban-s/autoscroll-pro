@@ -97,6 +97,7 @@ export default defineContentScript({
 
     window.addEventListener("beforeunload", () => {
       if (engine.getState().isScrolling) savePosition();
+      focusOverlay?.hide();
     });
 
     ctx.onInvalidated(() => {

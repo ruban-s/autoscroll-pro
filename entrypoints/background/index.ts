@@ -11,6 +11,7 @@ import type { ScrollState, ResumePosition } from "@/types";
 const tabStates = new Map<number, ScrollState>();
 const tabContentTypes = new Map<number, string>();
 const tabNextChapter = new Map<number, string>();
+const tabScrollContainers = new Map<number, string>();
 const tabAutoStartPending = new Set<number>();
 
 export default defineBackground(() => {
@@ -122,6 +123,10 @@ export default defineBackground(() => {
         message.data.speed = zoneSpeed;
       }
     }
+    const container = tabScrollContainers.get(tabId);
+    if (container) {
+      browser.tabs.sendMessage(tabId, { type: "scroll:setContainer", data: container }).catch(() => {});
+    }
     browser.tabs.sendMessage(tabId, message).catch(() => {});
   }
 
@@ -167,6 +172,8 @@ export default defineBackground(() => {
             if (config.autoAdvanceEnabled) {
               tabNextChapter.delete(tabId);
               tabAutoStartPending.add(tabId);
+              browser.action.setBadgeText({ text: ">>", tabId });
+              browser.action.setBadgeBackgroundColor({ color: "#6366f1", tabId });
               browser.tabs.update(tabId, { url: nextUrl });
             }
           });
@@ -192,6 +199,7 @@ export default defineBackground(() => {
         }
 
         if (detected.scrollContainer) {
+          tabScrollContainers.set(tabId, detected.scrollContainer);
           browser.tabs.sendMessage(tabId, {
             type: "scroll:setContainer",
             data: detected.scrollContainer,
@@ -218,16 +226,6 @@ export default defineBackground(() => {
           });
         }
 
-        if (tabAutoStartPending.has(tabId)) {
-          tabAutoStartPending.delete(tabId);
-          defaultConfig.getValue().then(async (config) => {
-            const startConfig = { ...config };
-            const zones = await speedZones.getValue();
-            const zoneSpeed = zones[detected.type as keyof typeof zones];
-            if (zoneSpeed != null) startConfig.speed = zoneSpeed;
-            browser.tabs.sendMessage(tabId, { type: "scroll:start", data: startConfig }).catch(() => {});
-          });
-        }
         break;
       }
       case "profile:getForSite": {
@@ -242,10 +240,26 @@ export default defineBackground(() => {
         });
         break;
       }
+      case "profile:save": {
+        const profile = message.data as import("@/types").ScrollProfile;
+        profiles.getValue().then((list) => {
+          const idx = list.findIndex((p) => p.id === profile.id);
+          const updated = idx >= 0
+            ? list.map((p) => (p.id === profile.id ? { ...profile, updatedAt: Date.now() } : p))
+            : [...list, { ...profile, updatedAt: Date.now() }];
+          profiles.setValue(updated);
+        });
+        break;
+      }
       case "resume:save": {
         const pos = message.data as ResumePosition;
         resumePositions.getValue().then((all) => {
           all[pos.url] = pos;
+          const entries = Object.entries(all);
+          if (entries.length > 50) {
+            entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+            all = Object.fromEntries(entries.slice(0, 50));
+          }
           resumePositions.setValue(all);
         });
         break;
@@ -267,11 +281,28 @@ export default defineBackground(() => {
     }
   });
 
+  browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status === "complete" && tabAutoStartPending.has(tabId)) {
+      tabAutoStartPending.delete(tabId);
+      defaultConfig.getValue().then(async (config) => {
+        const startConfig = { ...config };
+        const ct = tabContentTypes.get(tabId);
+        if (ct) {
+          const zones = await speedZones.getValue();
+          const zoneSpeed = zones[ct as keyof typeof zones];
+          if (zoneSpeed != null) startConfig.speed = zoneSpeed;
+        }
+        browser.tabs.sendMessage(tabId, { type: "scroll:start", data: startConfig }).catch(() => {});
+      });
+    }
+  });
+
   browser.tabs.onRemoved.addListener((tabId) => {
     tabStates.delete(tabId);
     tabContentTypes.delete(tabId);
     tabNextChapter.delete(tabId);
     tabAutoStartPending.delete(tabId);
+    tabScrollContainers.delete(tabId);
   });
 });
 

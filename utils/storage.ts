@@ -24,7 +24,7 @@ export const profiles = storage.defineItem<ScrollProfile[]>("sync:profiles", {
 
 export const resumePositions = storage.defineItem<
   Record<string, ResumePosition>
->("local:resumePositions", {
+>("sync:resumePositions", {
   fallback: {},
 });
 
