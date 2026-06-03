@@ -601,11 +601,13 @@ function AppearanceSettings() {
 }
 
 function AboutSection() {
+  const version = browser.runtime.getManifest().version;
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">About</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">AutoScroll Pro v0.1.0</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">AutoScroll Pro v{version}</p>
       </div>
       <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 space-y-2">
         <p className="text-gray-700 dark:text-gray-300">
