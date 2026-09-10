@@ -24,6 +24,7 @@ export default defineConfig({
           optional: [],
         },
       },
+      gecko_android: {},
     },
     permissions: ["storage", "contextMenus"],
     commands: {
