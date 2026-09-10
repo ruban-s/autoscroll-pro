@@ -8,7 +8,8 @@ export default defineConfig({
   }),
   manifest: {
     name: "AutoScroll Pro",
-    description: "Smart auto-scroll for PDFs, manga, blogs, and the web",
+    description:
+      "Hands-free scrolling for blogs, manga, PDFs and web apps. No host permissions, no tracking.",
     icons: {
       "16": "assets/icons/icon-16.png",
       "32": "assets/icons/icon-32.png",

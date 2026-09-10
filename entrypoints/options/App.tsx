@@ -647,7 +647,8 @@ function AboutSection() {
       </div>
       <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 space-y-2">
         <p className="text-gray-700 dark:text-gray-300">
-          Smart auto-scroll for PDFs, manga, blogs, and the web.
+          Hands-free scrolling for blogs, manga, PDFs and web apps. No host permissions, no
+          tracking.
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Supports Chrome, Firefox, and Edge.

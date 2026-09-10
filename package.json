@@ -1,6 +1,6 @@
 {
   "name": "autoscroll-pro",
-  "description": "Smart auto-scroll for PDFs, manga, blogs, and the web",
+  "description": "Hands-free scrolling for blogs, manga, PDFs and web apps. No host permissions, no tracking.",
   "private": true,
   "version": "0.3.0",
   "type": "module",
