@@ -3,10 +3,14 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  Crosshair,
   Focus,
   Gauge,
+  type LucideIcon,
+  Move,
   Pause,
   Play,
+  Repeat,
   Settings,
   SkipForward,
 } from "lucide-react";
@@ -89,9 +93,8 @@ export default function App() {
     const updated = { ...config, speed };
     setConfig(updated);
     await defaultConfig.setValue(updated);
-    if (scrolling) {
-      await sendToBackground("scroll:updateConfig", { speed });
-    }
+    // Always forward: `remember` tells the content script to pin this per site.
+    await sendToTab("scroll:updateConfig", { speed, remember: true });
   };
 
   const updateDirection = async (direction: ScrollDirection) => {
@@ -117,6 +120,27 @@ export default function App() {
     const updated = { ...config, autoAdvanceEnabled: enabled };
     setConfig(updated);
     await defaultConfig.setValue(updated);
+  };
+
+  const toggleLoop = async (enabled: boolean) => {
+    if (!config) return;
+    const updated = { ...config, loopEnabled: enabled };
+    setConfig(updated);
+    await defaultConfig.setValue(updated);
+    await sendToBackground("scroll:updateConfig", { loopEnabled: enabled });
+  };
+
+  const toggleWidget = async (enabled: boolean) => {
+    if (!config) return;
+    const updated = { ...config, widgetEnabled: enabled };
+    setConfig(updated);
+    await defaultConfig.setValue(updated);
+    await sendToBackground("scroll:updateConfig", { widgetEnabled: enabled });
+  };
+
+  const pickContainer = async () => {
+    await sendToTab("picker:start");
+    window.close();
   };
 
   if (error) {
@@ -193,45 +217,39 @@ export default function App() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Focus size={16} className="text-gray-500 dark:text-gray-400" />
-          <span className="text-sm text-gray-600 dark:text-gray-400">Focus Mode</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => toggleFocusMode(!config.focusModeEnabled)}
-          className={`relative w-9 h-5 rounded-full transition-colors ${
-            config.focusModeEnabled ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-              config.focusModeEnabled ? "translate-x-4" : ""
-            }`}
-          />
-        </button>
-      </div>
+      <Toggle
+        icon={Focus}
+        label="Focus Mode"
+        checked={config.focusModeEnabled}
+        onChange={toggleFocusMode}
+      />
+      <Toggle
+        icon={SkipForward}
+        label="Auto-Advance"
+        checked={config.autoAdvanceEnabled}
+        onChange={toggleAutoAdvance}
+      />
+      <Toggle
+        icon={Repeat}
+        label="Loop to Top"
+        checked={config.loopEnabled}
+        onChange={toggleLoop}
+      />
+      <Toggle
+        icon={Move}
+        label="Floating Controls"
+        checked={config.widgetEnabled}
+        onChange={toggleWidget}
+      />
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <SkipForward size={16} className="text-gray-500 dark:text-gray-400" />
-          <span className="text-sm text-gray-600 dark:text-gray-400">Auto-Advance</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => toggleAutoAdvance(!config.autoAdvanceEnabled)}
-          className={`relative w-9 h-5 rounded-full transition-colors ${
-            config.autoAdvanceEnabled ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
-              config.autoAdvanceEnabled ? "translate-x-4" : ""
-            }`}
-          />
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={pickContainer}
+        className="w-full flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:border-emerald-500 hover:text-emerald-600 transition-colors"
+      >
+        <Crosshair size={14} />
+        Pick scroll area
+      </button>
 
       {scrolling && (
         <div className="space-y-1">
@@ -258,6 +276,43 @@ export default function App() {
           <Settings size={14} />
         </button>
       </div>
+    </div>
+  );
+}
+
+function Toggle({
+  icon: Icon,
+  label,
+  checked,
+  onChange,
+}: {
+  icon: LucideIcon;
+  label: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <Icon size={16} className="text-gray-500 dark:text-gray-400" />
+        <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => onChange(!checked)}
+        className={`relative w-9 h-5 rounded-full transition-colors ${
+          checked ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+            checked ? "translate-x-4" : ""
+          }`}
+        />
+      </button>
     </div>
   );
 }

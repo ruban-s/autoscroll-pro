@@ -195,6 +195,18 @@ function GeneralSettings() {
           onChange={(v) => setConfig({ ...config, autoAdvanceEnabled: v })}
         />
         <Toggle
+          label="Loop to top"
+          description="Return to the top and keep going instead of stopping at the end"
+          checked={config.loopEnabled}
+          onChange={(v) => setConfig({ ...config, loopEnabled: v })}
+        />
+        <Toggle
+          label="Floating controls"
+          description="Draggable on-page play, pause and speed controls. Required on Firefox for Android, which supports neither keyboard shortcuts nor context menus"
+          checked={config.widgetEnabled}
+          onChange={(v) => setConfig({ ...config, widgetEnabled: v })}
+        />
+        <Toggle
           label="Timer mode"
           description="Stop scrolling after a set duration"
           checked={config.timerEnabled}
