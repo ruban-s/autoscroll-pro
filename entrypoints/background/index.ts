@@ -1,12 +1,7 @@
-import {
-  defaultConfig,
-  speedZones,
-  profiles,
-  resumePositions,
-} from "@/utils/storage";
-import { matchProfile } from "@/utils/profiler";
+import type { ResumePosition, ScrollConfig, ScrollState } from "@/types";
 import { RESUME_POSITION_MAX_AGE_MS } from "@/utils/constants";
-import type { ScrollState, ResumePosition } from "@/types";
+import { matchProfile } from "@/utils/profiler";
+import { defaultConfig, profiles, resumePositions, speedZones } from "@/utils/storage";
 
 const tabContentTypes = new Map<number, string>();
 const tabNextChapter = new Map<number, string>();
@@ -106,13 +101,19 @@ export default defineBackground(() => {
       case "speed-up": {
         const newSpeed = Math.min(100, config.speed + 5);
         await defaultConfig.setValue({ ...config, speed: newSpeed });
-        await browser.tabs.sendMessage(tab.id, { type: "scroll:updateConfig", data: { speed: newSpeed } });
+        await browser.tabs.sendMessage(tab.id, {
+          type: "scroll:updateConfig",
+          data: { speed: newSpeed },
+        });
         break;
       }
       case "speed-down": {
         const newSpeed = Math.max(1, config.speed - 5);
         await defaultConfig.setValue({ ...config, speed: newSpeed });
-        await browser.tabs.sendMessage(tab.id, { type: "scroll:updateConfig", data: { speed: newSpeed } });
+        await browser.tabs.sendMessage(tab.id, {
+          type: "scroll:updateConfig",
+          data: { speed: newSpeed },
+        });
         break;
       }
     }
@@ -123,7 +124,10 @@ export default defineBackground(() => {
     return tab?.id ?? null;
   }
 
-  async function sendStartWithZone(tabId: number, message: any) {
+  async function sendStartWithZone(
+    tabId: number,
+    message: { type: string; data?: Partial<ScrollConfig> },
+  ) {
     const contentType = tabContentTypes.get(tabId);
     if (contentType) {
       const zones = await speedZones.getValue();
@@ -139,8 +143,11 @@ export default defineBackground(() => {
     const tabId = sender.tab?.id;
 
     if (tabId == null) {
-      if (message.type === "scroll:start" || message.type === "scroll:stop" ||
-          message.type === "scroll:updateConfig") {
+      if (
+        message.type === "scroll:start" ||
+        message.type === "scroll:stop" ||
+        message.type === "scroll:updateConfig"
+      ) {
         getActiveTabId().then((id) => {
           if (!id) return;
           if (message.type === "scroll:start") {
@@ -187,14 +194,22 @@ export default defineBackground(() => {
         browser.action.setBadgeBackgroundColor({ color: "#f59e0b", tabId });
         break;
       case "content:detected": {
-        const detected = message.data as { type: string; confidence: number; url: string; nextChapterUrl?: string };
+        const detected = message.data as {
+          type: string;
+          confidence: number;
+          url: string;
+          nextChapterUrl?: string;
+        };
         tabContentTypes.set(tabId, detected.type);
 
         if (detected.nextChapterUrl && detected.url) {
           try {
             const next = new URL(detected.nextChapterUrl, detected.url);
             const current = new URL(detected.url);
-            if ((next.protocol === "http:" || next.protocol === "https:") && next.origin === current.origin) {
+            if (
+              (next.protocol === "http:" || next.protocol === "https:") &&
+              next.origin === current.origin
+            ) {
               tabNextChapter.set(tabId, next.href);
             }
           } catch {}
@@ -203,7 +218,10 @@ export default defineBackground(() => {
         speedZones.getValue().then((zones) => {
           const zoneSpeed = zones[detected.type as keyof typeof zones];
           if (zoneSpeed != null) {
-            browser.tabs.sendMessage(tabId, { type: "scroll:updateConfig", data: { speed: zoneSpeed } });
+            browser.tabs.sendMessage(tabId, {
+              type: "scroll:updateConfig",
+              data: { speed: zoneSpeed },
+            });
           }
         });
 
@@ -212,10 +230,12 @@ export default defineBackground(() => {
           profiles.getValue().then((list) => {
             const match = matchProfile(url, list);
             if (match && Object.keys(match.config).length > 0) {
-              browser.tabs.sendMessage(tabId, {
-                type: "scroll:updateConfig",
-                data: match.config,
-              }).catch(() => {});
+              browser.tabs
+                .sendMessage(tabId, {
+                  type: "scroll:updateConfig",
+                  data: match.config,
+                })
+                .catch(() => {});
             }
           });
         }
@@ -227,10 +247,12 @@ export default defineBackground(() => {
         profiles.getValue().then((list) => {
           const match = matchProfile(url, list);
           sender.tab?.id &&
-            browser.tabs.sendMessage(sender.tab.id, {
-              type: "scroll:updateConfig",
-              data: match?.config ?? {},
-            }).catch(() => {});
+            browser.tabs
+              .sendMessage(sender.tab.id, {
+                type: "scroll:updateConfig",
+                data: match?.config ?? {},
+              })
+              .catch(() => {});
         });
         break;
       }
@@ -238,9 +260,10 @@ export default defineBackground(() => {
         const profile = message.data as import("@/types").ScrollProfile;
         profiles.getValue().then((list) => {
           const idx = list.findIndex((p) => p.id === profile.id);
-          const updated = idx >= 0
-            ? list.map((p) => (p.id === profile.id ? { ...profile, updatedAt: Date.now() } : p))
-            : [...list, { ...profile, updatedAt: Date.now() }];
+          const updated =
+            idx >= 0
+              ? list.map((p) => (p.id === profile.id ? { ...profile, updatedAt: Date.now() } : p))
+              : [...list, { ...profile, updatedAt: Date.now() }];
           profiles.setValue(updated);
         });
         break;
@@ -264,10 +287,12 @@ export default defineBackground(() => {
           const pos = all[url];
           if (pos && Date.now() - pos.timestamp < RESUME_POSITION_MAX_AGE_MS) {
             sender.tab?.id &&
-              browser.tabs.sendMessage(sender.tab.id, {
-                type: "resume:restore",
-                data: pos,
-              }).catch(() => {});
+              browser.tabs
+                .sendMessage(sender.tab.id, {
+                  type: "resume:restore",
+                  data: pos,
+                })
+                .catch(() => {});
           }
         });
         break;
@@ -286,7 +311,9 @@ export default defineBackground(() => {
           const zoneSpeed = zones[ct as keyof typeof zones];
           if (zoneSpeed != null) startConfig.speed = zoneSpeed;
         }
-        browser.tabs.sendMessage(tabId, { type: "scroll:start", data: startConfig }).catch(() => {});
+        browser.tabs
+          .sendMessage(tabId, { type: "scroll:start", data: startConfig })
+          .catch(() => {});
       });
     }
   });

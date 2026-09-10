@@ -1,12 +1,9 @@
-import type { ContentType, DetectionResult } from "@/types";
-import { detectPdf } from "./pdf-handler";
-import { detectManga } from "./manga-detector";
+import type { DetectionResult } from "@/types";
 import { detectBlog } from "./blog-parser";
+import { detectManga } from "./manga-detector";
+import { detectPdf } from "./pdf-handler";
 
-export function detectContentType(
-  doc: Document,
-  url: string,
-): DetectionResult {
+export function detectContentType(doc: Document, url: string): DetectionResult {
   const detectors: Array<() => DetectionResult | null> = [
     () => detectPdf(doc, url),
     () => detectManga(doc, url),
@@ -43,9 +40,7 @@ function detectInfiniteScroll(doc: Document): DetectionResult | null {
     };
   }
 
-  const lazyImages = doc.querySelectorAll(
-    'img[loading="lazy"], img[data-src], img[data-lazy]',
-  );
+  const lazyImages = doc.querySelectorAll('img[loading="lazy"], img[data-src], img[data-lazy]');
   if (lazyImages.length > 10) {
     return {
       type: "infinite-scroll",

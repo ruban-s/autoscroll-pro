@@ -1,7 +1,7 @@
+import type { ResumePosition, ScrollConfig } from "@/types";
+import { detectContentType } from "@/utils/content-detector";
 import { ScrollEngine } from "@/utils/scroll-engine";
 import { defaultConfig } from "@/utils/storage";
-import { detectContentType } from "@/utils/content-detector";
-import type { ScrollConfig, ResumePosition } from "@/types";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -19,19 +19,19 @@ export default defineContentScript({
     if (detected) {
       engine.setContentType(detection.type);
       if (detection.metadata.scrollContainer) {
-        engine.setScrollElement(
-          document.querySelector(detection.metadata.scrollContainer),
-        );
+        engine.setScrollElement(document.querySelector(detection.metadata.scrollContainer));
       }
-      browser.runtime.sendMessage({
-        type: "content:detected",
-        data: {
-          type: detection.type,
-          confidence: detection.confidence,
-          url: location.href,
-          nextChapterUrl: detection.metadata.nextChapterUrl,
-        },
-      }).catch(() => {});
+      browser.runtime
+        .sendMessage({
+          type: "content:detected",
+          data: {
+            type: detection.type,
+            confidence: detection.confidence,
+            url: location.href,
+            nextChapterUrl: detection.metadata.nextChapterUrl,
+          },
+        })
+        .catch(() => {});
     }
 
     function savePosition() {
@@ -90,8 +90,8 @@ export default defineContentScript({
         case "scroll:updateConfig": {
           const partial = data as Partial<ScrollConfig>;
           engine.updateConfig(partial);
-          if ("focusModeEnabled" in partial) {
-            updateFocusMode(partial.focusModeEnabled!);
+          if (partial.focusModeEnabled !== undefined) {
+            updateFocusMode(partial.focusModeEnabled);
           }
           break;
         }
@@ -106,10 +106,12 @@ export default defineContentScript({
       }
     });
 
-    browser.runtime.sendMessage({
-      type: "resume:get",
-      data: location.href,
-    }).catch(() => {});
+    browser.runtime
+      .sendMessage({
+        type: "resume:get",
+        data: location.href,
+      })
+      .catch(() => {});
 
     window.addEventListener("pagehide", () => {
       if (engine.getState().isScrolling) savePosition();

@@ -27,15 +27,18 @@ function el(over: Partial<Fake> = {}): Fake {
 const html = el({ scrollHeight: 100, clientHeight: 100 });
 const body = el({ parentElement: html });
 
-(globalThis as any).getComputedStyle = (e: Fake) => e;
-(globalThis as any).window = { innerWidth: 1000, innerHeight: 800 };
-(globalThis as any).document = {
-  scrollingElement: html,
-  documentElement: html,
-  body,
-  elementsFromPoint: () => stack,
-};
 let stack: Fake[] = [];
+
+Object.assign(globalThis, {
+  getComputedStyle: (e: Fake) => e,
+  window: { innerWidth: 1000, innerHeight: 800 },
+  document: {
+    scrollingElement: html,
+    documentElement: html,
+    body,
+    elementsFromPoint: () => stack,
+  },
+});
 
 const { isScrollable, pickScrollTarget } = await import("./scroll-engine");
 const pick = pickScrollTarget as unknown as (h: Fake | null, v: boolean) => Fake;
