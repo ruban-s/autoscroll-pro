@@ -8,11 +8,22 @@ import { matchProfile } from "@/utils/profiler";
 import { RESUME_POSITION_MAX_AGE_MS } from "@/utils/constants";
 import type { ScrollState, ResumePosition } from "@/types";
 
-const tabStates = new Map<number, ScrollState>();
 const tabContentTypes = new Map<number, string>();
 const tabNextChapter = new Map<number, string>();
-const tabScrollContainers = new Map<number, string>();
 const tabAutoStartPending = new Set<number>();
+
+// The MV3 worker is evicted while idle, so its Maps cannot be trusted for
+// toggle state — ask the page, which is the only durable source.
+async function isTabScrolling(tabId: number): Promise<boolean> {
+  try {
+    const state = await browser.tabs.sendMessage(tabId, {
+      type: "scroll:getState",
+    });
+    return (state as ScrollState | undefined)?.isScrolling === true;
+  } catch {
+    return false;
+  }
+}
 
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(() => {
@@ -44,8 +55,7 @@ export default defineBackground(() => {
 
     switch (info.menuItemId) {
       case "toggle-scroll": {
-        const state = tabStates.get(tab.id);
-        if (state?.isScrolling) {
+        if (await isTabScrolling(tab.id)) {
           await browser.tabs.sendMessage(tab.id, { type: "scroll:stop" });
         } else {
           const startConfig = { ...config };
@@ -79,8 +89,7 @@ export default defineBackground(() => {
 
     switch (command) {
       case "toggle-scroll": {
-        const state = tabStates.get(tab.id);
-        if (state?.isScrolling) {
+        if (await isTabScrolling(tab.id)) {
           await browser.tabs.sendMessage(tab.id, { type: "scroll:stop" });
         } else {
           const startConfig = { ...config };
@@ -123,10 +132,6 @@ export default defineBackground(() => {
         message.data.speed = zoneSpeed;
       }
     }
-    const container = tabScrollContainers.get(tabId);
-    if (container) {
-      browser.tabs.sendMessage(tabId, { type: "scroll:setContainer", data: container }).catch(() => {});
-    }
     browser.tabs.sendMessage(tabId, message).catch(() => {});
   }
 
@@ -158,13 +163,10 @@ export default defineBackground(() => {
         break;
 
       case "scroll:stateChanged": {
-        const state = message.data as ScrollState;
-        tabStates.set(tabId, state);
-        updateBadge(tabId, state);
+        updateBadge(tabId, message.data as ScrollState);
         break;
       }
       case "scroll:finished": {
-        tabStates.delete(tabId);
         browser.action.setBadgeText({ text: "", tabId });
         const nextUrl = tabNextChapter.get(tabId);
         if (nextUrl) {
@@ -185,25 +187,17 @@ export default defineBackground(() => {
         browser.action.setBadgeBackgroundColor({ color: "#f59e0b", tabId });
         break;
       case "content:detected": {
-        const detected = message.data as { type: string; confidence: number; scrollContainer?: string; nextChapterUrl?: string };
+        const detected = message.data as { type: string; confidence: number; url: string; nextChapterUrl?: string };
         tabContentTypes.set(tabId, detected.type);
 
-        if (detected.nextChapterUrl && sender.tab?.url) {
+        if (detected.nextChapterUrl && detected.url) {
           try {
-            const next = new URL(detected.nextChapterUrl, sender.tab.url);
-            const current = new URL(sender.tab.url);
+            const next = new URL(detected.nextChapterUrl, detected.url);
+            const current = new URL(detected.url);
             if ((next.protocol === "http:" || next.protocol === "https:") && next.origin === current.origin) {
               tabNextChapter.set(tabId, next.href);
             }
           } catch {}
-        }
-
-        if (detected.scrollContainer) {
-          tabScrollContainers.set(tabId, detected.scrollContainer);
-          browser.tabs.sendMessage(tabId, {
-            type: "scroll:setContainer",
-            data: detected.scrollContainer,
-          }).catch(() => {});
         }
 
         speedZones.getValue().then((zones) => {
@@ -213,7 +207,7 @@ export default defineBackground(() => {
           }
         });
 
-        const url = sender.tab?.url;
+        const url = detected.url;
         if (url) {
           profiles.getValue().then((list) => {
             const match = matchProfile(url, list);
@@ -298,11 +292,9 @@ export default defineBackground(() => {
   });
 
   browser.tabs.onRemoved.addListener((tabId) => {
-    tabStates.delete(tabId);
     tabContentTypes.delete(tabId);
     tabNextChapter.delete(tabId);
     tabAutoStartPending.delete(tabId);
-    tabScrollContainers.delete(tabId);
   });
 });
 

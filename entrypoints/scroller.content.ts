@@ -1,5 +1,6 @@
 import { ScrollEngine } from "@/utils/scroll-engine";
 import { defaultConfig } from "@/utils/storage";
+import { detectContentType } from "@/utils/content-detector";
 import type { ScrollConfig, ResumePosition } from "@/types";
 
 export default defineContentScript({
@@ -11,6 +12,27 @@ export default defineContentScript({
     const engine = new ScrollEngine(config);
     let focusOverlay: FocusOverlay | null = null;
     let wasScrolling = false;
+
+    const detection = detectContentType(document, location.href);
+    const detected = detection.type !== "general" && detection.confidence >= 0.3;
+
+    if (detected) {
+      engine.setContentType(detection.type);
+      if (detection.metadata.scrollContainer) {
+        engine.setScrollElement(
+          document.querySelector(detection.metadata.scrollContainer),
+        );
+      }
+      browser.runtime.sendMessage({
+        type: "content:detected",
+        data: {
+          type: detection.type,
+          confidence: detection.confidence,
+          url: location.href,
+          nextChapterUrl: detection.metadata.nextChapterUrl,
+        },
+      }).catch(() => {});
+    }
 
     function savePosition() {
       const el = document.scrollingElement ?? document.documentElement;
@@ -73,12 +95,6 @@ export default defineContentScript({
           }
           break;
         }
-        case "scroll:setContainer": {
-          const selector = data as string;
-          const container = document.querySelector(selector);
-          if (container) engine.setScrollElement(container);
-          break;
-        }
         case "scroll:getState":
           sendResponse(engine.getState());
           return;
@@ -95,7 +111,7 @@ export default defineContentScript({
       data: location.href,
     }).catch(() => {});
 
-    window.addEventListener("beforeunload", () => {
+    window.addEventListener("pagehide", () => {
       if (engine.getState().isScrolling) savePosition();
       focusOverlay?.hide();
     });
