@@ -21,103 +21,90 @@ async function isTabScrolling(tabId: number): Promise<boolean> {
 }
 
 export default defineBackground(() => {
-  browser.runtime.onInstalled.addListener(() => {
-    browser.contextMenus.create({
-      id: "toggle-scroll",
-      title: "Toggle Auto-Scroll",
-      contexts: ["page"],
-    });
-    browser.contextMenus.create({
-      id: "speed-slow",
-      title: "Speed: Slow (15)",
-      contexts: ["page"],
-    });
-    browser.contextMenus.create({
-      id: "speed-medium",
-      title: "Speed: Medium (40)",
-      contexts: ["page"],
-    });
-    browser.contextMenus.create({
-      id: "speed-fast",
-      title: "Speed: Fast (75)",
-      contexts: ["page"],
-    });
-  });
+  // Firefox for Android implements neither menus nor commands; touching either
+  // at top level throws and takes the whole background script down with it.
+  const hasContextMenus = typeof browser.contextMenus !== "undefined";
+  const hasCommands = typeof browser.commands !== "undefined";
 
-  browser.contextMenus.onClicked.addListener(async (info, tab) => {
-    if (!tab?.id) return;
-    const config = await defaultConfig.getValue();
-
-    switch (info.menuItemId) {
-      case "toggle-scroll": {
-        if (await isTabScrolling(tab.id)) {
-          await browser.tabs.sendMessage(tab.id, { type: "scroll:stop" });
-        } else {
-          const startConfig = { ...config };
-          const ct = tabContentTypes.get(tab.id);
-          if (ct) {
-            const zones = await speedZones.getValue();
-            const zs = zones[ct as keyof typeof zones];
-            if (zs != null) startConfig.speed = zs;
-          }
-          await browser.tabs.sendMessage(tab.id, { type: "scroll:start", data: startConfig });
-        }
-        break;
-      }
-      case "speed-slow":
-      case "speed-medium":
-      case "speed-fast": {
-        const speeds = { "speed-slow": 15, "speed-medium": 40, "speed-fast": 75 };
-        const speed = speeds[info.menuItemId as keyof typeof speeds];
-        await defaultConfig.setValue({ ...config, speed });
-        await browser.tabs.sendMessage(tab.id, { type: "scroll:updateConfig", data: { speed } });
-        break;
-      }
+  async function startScroll(tabId: number, config: ScrollConfig) {
+    const startConfig = { ...config };
+    const contentType = tabContentTypes.get(tabId);
+    if (contentType) {
+      const zones = await speedZones.getValue();
+      const zoneSpeed = zones[contentType as keyof typeof zones];
+      if (zoneSpeed != null) startConfig.speed = zoneSpeed;
     }
-  });
+    await browser.tabs.sendMessage(tabId, { type: "scroll:start", data: startConfig });
+  }
 
-  browser.commands.onCommand.addListener(async (command) => {
-    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) return;
-
-    const config = await defaultConfig.getValue();
-
-    switch (command) {
-      case "toggle-scroll": {
-        if (await isTabScrolling(tab.id)) {
-          await browser.tabs.sendMessage(tab.id, { type: "scroll:stop" });
-        } else {
-          const startConfig = { ...config };
-          const ct = tabContentTypes.get(tab.id);
-          if (ct) {
-            const zones = await speedZones.getValue();
-            const zs = zones[ct as keyof typeof zones];
-            if (zs != null) startConfig.speed = zs;
-          }
-          await browser.tabs.sendMessage(tab.id, { type: "scroll:start", data: startConfig });
-        }
-        break;
-      }
-      case "speed-up": {
-        const newSpeed = Math.min(100, config.speed + 5);
-        await defaultConfig.setValue({ ...config, speed: newSpeed });
-        await browser.tabs.sendMessage(tab.id, {
-          type: "scroll:updateConfig",
-          data: { speed: newSpeed },
-        });
-        break;
-      }
-      case "speed-down": {
-        const newSpeed = Math.max(1, config.speed - 5);
-        await defaultConfig.setValue({ ...config, speed: newSpeed });
-        await browser.tabs.sendMessage(tab.id, {
-          type: "scroll:updateConfig",
-          data: { speed: newSpeed },
-        });
-        break;
-      }
+  async function toggleScroll(tabId: number, config: ScrollConfig) {
+    if (await isTabScrolling(tabId)) {
+      await browser.tabs.sendMessage(tabId, { type: "scroll:stop" });
+    } else {
+      await startScroll(tabId, config);
     }
-  });
+  }
+
+  async function nudgeSpeed(tabId: number, config: ScrollConfig, delta: number) {
+    const speed = Math.max(1, Math.min(100, config.speed + delta));
+    await defaultConfig.setValue({ ...config, speed });
+    await browser.tabs.sendMessage(tabId, { type: "scroll:updateConfig", data: { speed } });
+  }
+
+  if (hasContextMenus) {
+    browser.runtime.onInstalled.addListener(() => {
+      const items = [
+        { id: "toggle-scroll", title: "Toggle Auto-Scroll" },
+        { id: "speed-slow", title: "Speed: Slow (15)" },
+        { id: "speed-medium", title: "Speed: Medium (40)" },
+        { id: "speed-fast", title: "Speed: Fast (75)" },
+      ];
+      for (const item of items) {
+        browser.contextMenus.create({ ...item, contexts: ["page"] });
+      }
+    });
+
+    browser.contextMenus.onClicked.addListener(async (info, tab) => {
+      if (!tab?.id) return;
+      const config = await defaultConfig.getValue();
+
+      if (info.menuItemId === "toggle-scroll") {
+        await toggleScroll(tab.id, config);
+        return;
+      }
+
+      const speeds: Record<string, number> = {
+        "speed-slow": 15,
+        "speed-medium": 40,
+        "speed-fast": 75,
+      };
+      const speed = speeds[String(info.menuItemId)];
+      if (speed == null) return;
+      await defaultConfig.setValue({ ...config, speed });
+      await browser.tabs.sendMessage(tab.id, { type: "scroll:updateConfig", data: { speed } });
+    });
+  }
+
+  if (hasCommands) {
+    browser.commands.onCommand.addListener(async (command) => {
+      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) return;
+
+      const config = await defaultConfig.getValue();
+
+      switch (command) {
+        case "toggle-scroll":
+          await toggleScroll(tab.id, config);
+          break;
+        case "speed-up":
+          await nudgeSpeed(tab.id, config, 5);
+          break;
+        case "speed-down":
+          await nudgeSpeed(tab.id, config, -5);
+          break;
+      }
+    });
+  }
 
   async function getActiveTabId(): Promise<number | null> {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
