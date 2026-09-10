@@ -24,7 +24,7 @@ export default defineConfig({
         },
       },
     },
-    permissions: ["activeTab", "scripting", "storage", "contextMenus"],
+    permissions: ["storage", "contextMenus"],
     commands: {
       "toggle-scroll": {
         suggested_key: { default: "Alt+S" },
