@@ -11,6 +11,8 @@ export const DEFAULT_CONFIG: ScrollConfig = {
   timerEnabled: false,
   timerDurationMs: 300_000,
   autoAdvanceEnabled: false,
+  loopEnabled: false,
+  widgetEnabled: false,
 };
 
 export const DEFAULT_SPEED_ZONES: Record<ContentType, number> = {

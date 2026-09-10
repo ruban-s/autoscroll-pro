@@ -9,6 +9,7 @@ export interface ProtocolMap {
   "scroll:stateChanged": (state: ScrollState) => void;
   "scroll:finished": () => void;
   "scroll:interactionPause": () => void;
+  "picker:start": () => void;
   "content:detected": (result: {
     type: ContentType;
     confidence: number;

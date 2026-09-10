@@ -13,6 +13,8 @@ export interface ScrollConfig {
   timerEnabled: boolean;
   timerDurationMs: number;
   autoAdvanceEnabled: boolean;
+  loopEnabled: boolean;
+  widgetEnabled: boolean;
 }
 
 export interface ScrollState {

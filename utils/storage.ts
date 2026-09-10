@@ -25,6 +25,18 @@ export const resumePositions = storage.defineItem<Record<string, ResumePosition>
   },
 );
 
+export const siteSpeeds = storage.defineItem<Record<string, number>>("local:siteSpeeds", {
+  fallback: {},
+});
+
+export const siteContainers = storage.defineItem<Record<string, string>>("local:siteContainers", {
+  fallback: {},
+});
+
+export const widgetPosition = storage.defineItem<{ x: number; y: number }>("local:widgetPosition", {
+  fallback: { x: 16, y: 100 },
+});
+
 export const customShortcuts = storage.defineItem<Record<string, string>>("sync:customShortcuts", {
   fallback: {
     toggleScroll: "Alt+S",

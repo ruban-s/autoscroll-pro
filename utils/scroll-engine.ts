@@ -196,9 +196,13 @@ export class ScrollEngine {
     }
 
     if (this.shouldStop()) {
-      this.stop();
-      this.onFinished?.();
-      return;
+      if (this.config.loopEnabled) {
+        this.restart();
+      } else {
+        this.stop();
+        this.onFinished?.();
+        return;
+      }
     }
 
     this.rafId = requestAnimationFrame(this.tick);
@@ -234,8 +238,12 @@ export class ScrollEngine {
       this.scrollBy(this.config.stepSize);
 
       if (this.shouldStop()) {
-        this.stop();
-        this.onFinished?.();
+        if (this.config.loopEnabled) {
+          this.restart();
+        } else {
+          this.stop();
+          this.onFinished?.();
+        }
       }
     }, this.config.stepInterval);
   }
@@ -302,6 +310,16 @@ export class ScrollEngine {
 
     const max = el.scrollWidth - el.clientWidth;
     return max > 0 ? (el.scrollLeft / max) * 100 : 0;
+  }
+
+  private restart() {
+    const el = this.getScrollTarget();
+    el.scrollTo(
+      this.isVertical() ? { top: 0, behavior: "instant" } : { left: 0, behavior: "instant" },
+    );
+    this.subPixel = 0;
+    this.endSinceMs = 0;
+    this.lastScrollSize = 0;
   }
 
   private shouldStop(): boolean {
