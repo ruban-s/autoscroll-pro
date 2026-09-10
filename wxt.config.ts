@@ -18,6 +18,7 @@ export default defineConfig({
     browser_specific_settings: {
       gecko: {
         id: "autoscroll-pro@ruban.dev",
+        strict_min_version: "109.0",
         data_collection_permissions: {
           required: ["none"],
           optional: [],
