@@ -5,6 +5,40 @@ All notable changes to AutoScroll Pro are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-10
+
+### Added
+
+- **Firefox for Android support.** `browser_specific_settings.gecko_android` is
+  now declared, without which the add-on is desktop-only.
+- **Floating on-page controls.** A draggable play/pause, speed and progress
+  widget that remembers its position. Off by default; enable it in the popup or
+  options. This is the only usable control surface on Android, which supports
+  neither keyboard shortcuts nor context menus.
+- **Loop to top.** Return to the start and keep scrolling instead of stopping at
+  the end.
+- **Space to pause and resume.** Only claimed while scrolling, and never while
+  typing in an input, textarea, select, or contenteditable.
+- **Pick scroll area.** When detection picks the wrong element, choose the
+  scrolling area by hand from the popup. The choice is saved per site and takes
+  precedence over detection.
+- **Per-site speed memory.** A speed set by hand is remembered for that hostname
+  and restored on the next visit. Content-type speed zones are not remembered,
+  so changing a zone later still applies.
+
+### Fixed
+
+- **The background script crashed on Firefox for Android.** `browser.commands`
+  and `browser.contextMenus` are both unimplemented there, and
+  `browser.commands.onCommand.addListener` ran at top level, so the whole
+  background script died with it, taking the badge and auto-advance along.
+  Both are now feature-detected.
+
+### Changed
+
+- Context menu and keyboard command handlers share one implementation instead of
+  duplicating the toggle, speed-zone and nudge logic.
+
 ## [0.2.1] - 2026-09-10
 
 ### Fixed
@@ -112,6 +146,7 @@ Initial release.
 - Auto-pause on user interaction with auto-resume after 2 seconds.
 - Dark mode.
 
+[0.3.0]: https://github.com/ruban-s/autoscroll-pro/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/ruban-s/autoscroll-pro/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/ruban-s/autoscroll-pro/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/ruban-s/autoscroll-pro/compare/v0.1.0...v0.1.1

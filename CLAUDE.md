@@ -25,8 +25,10 @@ After installing dependencies, `wxt prepare` runs automatically to generate type
 
 **Extension entry points** live in `entrypoints/` — WXT auto-discovers them by filename convention:
 
-- `background/index.ts` — Service worker. Orchestrates keyboard commands, badge updates, and message routing. Never scrolls directly. **The MV3 worker is evicted while idle, so its module-level `Map`s are caches, never the source of truth** — toggle state is read back from the page via `scroll:getState`.
-- `scroller.content.ts` — The only content script, injected on all URLs. Runs content detection, instantiates `ScrollEngine`, listens for control messages from background/popup.
+- `background/index.ts` — Service worker. Orchestrates keyboard commands, badge updates, and message routing. Never scrolls directly. **The MV3 worker is evicted while idle, so its module-level `Map`s are caches, never the source of truth** — toggle state is read back from the page via `scroll:getState`. **Firefox for Android implements neither `commands` nor `contextMenus`**, so both are feature-detected; touching them at top level throws and takes the whole background script down.
+- `scroller.content.ts` — The only content script, injected on all URLs. Runs content detection, instantiates `ScrollEngine`, owns the floating widget and the container picker, listens for control messages from background/popup.
+- `utils/widget.ts` — The floating on-page control, built with plain DOM in a closed shadow root. Deliberately not React: it lives inside the scroller, so it calls the engine directly instead of round-tripping messages, and it adds no framework to every page. **Do not use `innerHTML`** — AMO flags it, and commit `656e7c0` already removed it once.
+- `utils/picker.ts` — "Pick scroll area" mode. `buildSelector()` grows a selector path upward until `document.querySelector(path)` resolves back to the element it started on; returning an ancestor's selector early is the bug it was written to avoid.
 - `popup/` — React app (320px wide). Play/pause toggle, speed slider, direction picker, progress bar.
 
 **Core scroll logic** is in `utils/scroll-engine.ts` — a standalone `ScrollEngine` class:
@@ -39,7 +41,9 @@ After installing dependencies, `wxt prepare` runs automatically to generate type
 
 **Message passing** is raw `browser.runtime.onMessage` with `{ type, data }` envelopes, typed by `ProtocolMap` (`types/messaging.ts`) as the documented contract. All messages are namespaced (e.g., `scroll:start`, `scroll:stateChanged`, `content:detected`). Flow: Popup → Background → Content Script, and Content Script → Background for events. The content script sends its own `location.href` with `content:detected`; the background must not read `sender.tab.url`, which needs a host permission this extension does not request.
 
-**Storage** (`utils/storage.ts`) uses WXT's `storage.defineItem` from `wxt/utils/storage`. Settings use `sync:` prefix (cross-device), runtime state uses `local:` prefix.
+**Storage** (`utils/storage.ts`) uses WXT's `storage.defineItem` from `wxt/utils/storage`. Settings use `sync:` prefix (cross-device), runtime state uses `local:` prefix. Note `storage.sync` does not sync to a Mozilla account on Firefox for Android, so mobile settings are effectively local.
+
+Per-site state (`local:siteSpeeds`, `local:siteContainers`) is keyed by hostname. Speed is only remembered when the `scroll:updateConfig` message carries `remember: true` — the background reuses that same message to push content-type speed zones, and those must not stick, or a zone edit in options would never apply again.
 
 ## Key Types
 
