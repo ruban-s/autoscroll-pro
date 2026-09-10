@@ -1,31 +1,31 @@
-import { useState, useEffect } from "react";
 import {
-  Settings,
-  User,
+  Download,
+  Info,
   Keyboard,
   Palette,
-  Info,
-  Save,
-  Trash2,
   Plus,
-  Download,
+  Save,
+  Settings,
+  Trash2,
   Upload,
+  User,
 } from "lucide-react";
-import {
-  defaultConfig,
-  theme as themeSetting,
-  speedZones,
-  profiles as profilesSetting,
-  customShortcuts,
-} from "@/utils/storage";
-import { DEFAULT_CONFIG, DEFAULT_SPEED_ZONES } from "@/utils/constants";
+import { useEffect, useState } from "react";
 import type {
-  ScrollConfig,
   ContentType,
-  ScrollProfile,
+  ScrollConfig,
   ScrollDirection,
   ScrollMode,
+  ScrollProfile,
 } from "@/types";
+import { DEFAULT_CONFIG, DEFAULT_SPEED_ZONES } from "@/utils/constants";
+import {
+  customShortcuts,
+  defaultConfig,
+  profiles as profilesSetting,
+  speedZones,
+  theme as themeSetting,
+} from "@/utils/storage";
 
 type Tab = "general" | "profiles" | "shortcuts" | "appearance" | "about";
 
@@ -48,6 +48,7 @@ export default function App() {
         </h1>
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
+            type="button"
             key={id}
             onClick={() => setTab(id)}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -105,9 +106,7 @@ function GeneralSettings() {
               min={1}
               max={100}
               value={config.speed}
-              onChange={(e) =>
-                setConfig({ ...config, speed: Number(e.target.value) })
-              }
+              onChange={(e) => setConfig({ ...config, speed: Number(e.target.value) })}
               className="flex-1 accent-emerald-500"
             />
             <span className="text-sm font-mono w-8 text-right text-gray-900 dark:text-gray-100">
@@ -137,9 +136,7 @@ function GeneralSettings() {
         <Field label="Scroll Mode">
           <select
             value={config.mode}
-            onChange={(e) =>
-              setConfig({ ...config, mode: e.target.value as ScrollMode })
-            }
+            onChange={(e) => setConfig({ ...config, mode: e.target.value as ScrollMode })}
             className="input"
           >
             <option value="smooth">Smooth</option>
@@ -153,9 +150,7 @@ function GeneralSettings() {
               <input
                 type="number"
                 value={config.stepSize}
-                onChange={(e) =>
-                  setConfig({ ...config, stepSize: Number(e.target.value) })
-                }
+                onChange={(e) => setConfig({ ...config, stepSize: Number(e.target.value) })}
                 className="input"
                 min={50}
                 max={2000}
@@ -236,9 +231,7 @@ function GeneralSettings() {
                 min={1}
                 max={100}
                 value={zones[type]}
-                onChange={(e) =>
-                  setZones({ ...zones, [type]: Number(e.target.value) })
-                }
+                onChange={(e) => setZones({ ...zones, [type]: Number(e.target.value) })}
                 className="flex-1 accent-emerald-500"
               />
               <span className="text-sm font-mono w-8 text-right text-gray-900 dark:text-gray-100">
@@ -250,6 +243,7 @@ function GeneralSettings() {
       </Section>
 
       <button
+        type="button"
         onClick={save}
         className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
       >
@@ -289,11 +283,7 @@ function ProfileSettings() {
     const existing = list.findIndex((p) => p.id === profile.id);
     const updated =
       existing >= 0
-        ? list.map((p) =>
-            p.id === profile.id
-              ? { ...profile, updatedAt: Date.now() }
-              : p,
-          )
+        ? list.map((p) => (p.id === profile.id ? { ...profile, updatedAt: Date.now() } : p))
         : [...list, { ...profile, updatedAt: Date.now() }];
     await saveProfiles(updated);
     setEditing(null);
@@ -335,27 +325,26 @@ function ProfileSettings() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">
-            Profiles
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Per-site scroll configurations
-          </p>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">Profiles</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Per-site scroll configurations</p>
         </div>
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={importProfiles}
             className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
           >
             <Upload size={14} /> Import
           </button>
           <button
+            type="button"
             onClick={exportProfiles}
             className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
           >
             <Download size={14} /> Export
           </button>
           <button
+            type="button"
             onClick={addProfile}
             className="flex items-center gap-1 px-3 py-1.5 text-sm bg-emerald-500 text-white rounded-lg hover:bg-emerald-600"
           >
@@ -365,11 +354,7 @@ function ProfileSettings() {
       </div>
 
       {editing && (
-        <ProfileEditor
-          profile={editing}
-          onSave={saveProfile}
-          onCancel={() => setEditing(null)}
-        />
+        <ProfileEditor profile={editing} onSave={saveProfile} onCancel={() => setEditing(null)} />
       )}
 
       {list.length === 0 && !editing && (
@@ -391,12 +376,14 @@ function ProfileSettings() {
           </div>
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={() => setEditing(profile)}
               className="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             >
               Edit
             </button>
             <button
+              type="button"
               onClick={() => deleteProfile(profile.id)}
               className="p-1 text-red-400 hover:text-red-600"
             >
@@ -419,9 +406,7 @@ function ProfileEditor({
   onCancel: () => void;
 }) {
   const [draft, setDraft] = useState(profile);
-  const [patterns, setPatterns] = useState(
-    profile.sitePatterns.join("\n"),
-  );
+  const [patterns, setPatterns] = useState(profile.sitePatterns.join("\n"));
 
   return (
     <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border-2 border-emerald-200 dark:border-emerald-800 space-y-4">
@@ -449,9 +434,7 @@ function ProfileEditor({
           onChange={(e) =>
             setDraft({
               ...draft,
-              contentType: (e.target.value || undefined) as
-                | ContentType
-                | undefined,
+              contentType: (e.target.value || undefined) as ContentType | undefined,
             })
           }
           className="input"
@@ -487,12 +470,14 @@ function ProfileEditor({
 
       <div className="flex gap-2 justify-end">
         <button
+          type="button"
           onClick={onCancel}
           className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
         >
           Cancel
         </button>
         <button
+          type="button"
           onClick={() =>
             onSave({
               ...draft,
@@ -557,9 +542,7 @@ function ShortcutSettings() {
 }
 
 function AppearanceSettings() {
-  const [currentTheme, setCurrentTheme] = useState<
-    "light" | "dark" | "system"
-  >("system");
+  const [currentTheme, setCurrentTheme] = useState<"light" | "dark" | "system">("system");
 
   useEffect(() => {
     themeSetting.getValue().then(setCurrentTheme);
@@ -573,9 +556,7 @@ function AppearanceSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">
-          Appearance
-        </h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">Appearance</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">Theme and visual preferences</p>
       </div>
 
@@ -583,6 +564,7 @@ function AppearanceSettings() {
         <div className="flex gap-3">
           {(["light", "dark", "system"] as const).map((t) => (
             <button
+              type="button"
               key={t}
               onClick={() => updateTheme(t)}
               className={`flex-1 p-4 rounded-lg border-2 text-center capitalize transition-colors ${
@@ -663,33 +645,27 @@ function AboutSection() {
       <Section title="Data">
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={exportAll}
             className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
           >
             <Download size={14} /> Export All Settings
           </button>
           <button
+            type="button"
             onClick={importAll}
             className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
           >
             <Upload size={14} /> Import Settings
           </button>
-          {status && (
-            <span className="text-sm text-emerald-500 self-center">{status}</span>
-          )}
+          {status && <span className="text-sm text-emerald-500 self-center">{status}</span>}
         </div>
       </Section>
     </div>
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -700,18 +676,13 @@ function Section({
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1">
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+    // biome-ignore lint/a11y/noLabelWithoutControl: every Field wraps exactly one control, passed as children
+    <label className="block space-y-1">
+      <span className="block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }
 
@@ -730,11 +701,10 @@ function Toggle({
     <div className="flex items-center justify-between">
       <div>
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</p>
-        {description && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
-        )}
+        {description && <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>}
       </div>
       <button
+        type="button"
         onClick={() => onChange(!checked)}
         className={`relative w-10 h-5 rounded-full transition-colors ${
           checked ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"

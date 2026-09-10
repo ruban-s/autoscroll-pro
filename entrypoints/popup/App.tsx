@@ -1,19 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
 import {
-  Play,
-  Pause,
   ArrowDown,
-  ArrowUp,
   ArrowLeft,
   ArrowRight,
-  Gauge,
-  Settings,
+  ArrowUp,
   Focus,
+  Gauge,
+  Pause,
+  Play,
+  Settings,
   SkipForward,
 } from "lucide-react";
-import { defaultConfig } from "@/utils/storage";
-import { DEFAULT_CONFIG } from "@/utils/constants";
+import { useCallback, useEffect, useState } from "react";
 import type { ScrollConfig, ScrollDirection, ScrollState } from "@/types";
+import { DEFAULT_CONFIG } from "@/utils/constants";
+import { defaultConfig } from "@/utils/storage";
 
 const DIRECTION_ICONS = {
   down: ArrowDown,
@@ -36,32 +36,26 @@ export default function App() {
       .catch((e) => setError(String(e)));
   }, []);
 
-  const sendToBackground = useCallback(
-    async (type: string, data?: unknown) => {
-      try {
-        return await browser.runtime.sendMessage({ type, data });
-      } catch {
-        return null;
-      }
-    },
-    [],
-  );
+  const sendToBackground = useCallback(async (type: string, data?: unknown) => {
+    try {
+      return await browser.runtime.sendMessage({ type, data });
+    } catch {
+      return null;
+    }
+  }, []);
 
-  const sendToTab = useCallback(
-    async (type: string, data?: unknown) => {
-      const [tab] = await browser.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      if (!tab?.id) return null;
-      try {
-        return await browser.tabs.sendMessage(tab.id, { type, data });
-      } catch {
-        return null;
-      }
-    },
-    [],
-  );
+  const sendToTab = useCallback(async (type: string, data?: unknown) => {
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (!tab?.id) return null;
+    try {
+      return await browser.tabs.sendMessage(tab.id, { type, data });
+    } catch {
+      return null;
+    }
+  }, []);
 
   const pollState = useCallback(() => {
     sendToTab("scroll:getState").then((state) => {
@@ -146,6 +140,7 @@ export default function App() {
           )}
         </div>
         <button
+          type="button"
           onClick={toggleScroll}
           className={`p-3 rounded-full transition-colors ${
             scrolling
@@ -182,6 +177,7 @@ export default function App() {
             const Icon = DIRECTION_ICONS[dir];
             return (
               <button
+                type="button"
                 key={dir}
                 onClick={() => updateDirection(dir)}
                 className={`flex-1 p-2 rounded-lg border transition-colors flex items-center justify-center ${
@@ -203,6 +199,7 @@ export default function App() {
           <span className="text-sm text-gray-600 dark:text-gray-400">Focus Mode</span>
         </div>
         <button
+          type="button"
           onClick={() => toggleFocusMode(!config.focusModeEnabled)}
           className={`relative w-9 h-5 rounded-full transition-colors ${
             config.focusModeEnabled ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
@@ -222,6 +219,7 @@ export default function App() {
           <span className="text-sm text-gray-600 dark:text-gray-400">Auto-Advance</span>
         </div>
         <button
+          type="button"
           onClick={() => toggleAutoAdvance(!config.autoAdvanceEnabled)}
           className={`relative w-9 h-5 rounded-full transition-colors ${
             config.autoAdvanceEnabled ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
@@ -253,6 +251,7 @@ export default function App() {
       <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 pt-2 border-t border-gray-100 dark:border-gray-800">
         <span>Alt+S toggle · Alt+↑↓ speed</span>
         <button
+          type="button"
           onClick={() => browser.runtime.openOptionsPage()}
           className="p-1 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
         >
