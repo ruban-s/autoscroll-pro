@@ -24,4 +24,5 @@ export const DEFAULT_SPEED_ZONES: Record<ContentType, number> = {
 export const SPEED_MIN = 1;
 export const SPEED_MAX = 100;
 export const INTERACTION_RESUME_DELAY_MS = 2000;
+export const END_GRACE_MS = 1200;
 export const RESUME_POSITION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
