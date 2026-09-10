@@ -17,7 +17,9 @@ export default defineContentScript({
       siteSpeeds.getValue().catch(() => ({}) as Record<string, number>),
       siteContainers.getValue().catch(() => ({}) as Record<string, string>),
     ]);
-    if (speeds[site] != null) config.speed = speeds[site];
+    const savedSpeed = speeds[site];
+    let siteSpeedPinned = savedSpeed != null;
+    if (savedSpeed != null) config.speed = savedSpeed;
 
     const engine = new ScrollEngine(config);
     let focusOverlay: FocusOverlay | null = null;
@@ -54,10 +56,22 @@ export default defineContentScript({
     }
 
     function rememberSpeed(speed: number) {
+      siteSpeedPinned = true;
       siteSpeeds
         .getValue()
         .then((all) => siteSpeeds.setValue({ ...all, [site]: speed }))
         .catch(() => {});
+    }
+
+    // A speed the user pinned for this site outranks the content-type zone the
+    // background pushes on every load.
+    function applyConfig(incoming: Partial<ScrollConfig> & { remember?: boolean }) {
+      const partial = { ...incoming };
+      if (partial.speed !== undefined && !partial.remember && siteSpeedPinned) {
+        delete partial.speed;
+      }
+      engine.updateConfig(partial);
+      if (incoming.speed !== undefined && incoming.remember) rememberSpeed(incoming.speed);
     }
 
     function updateWidget(enabled: boolean) {
@@ -140,7 +154,7 @@ export default defineContentScript({
       switch (type) {
         case "scroll:start":
           pausedBySpace = false;
-          engine.updateConfig(data as ScrollConfig);
+          applyConfig(data as ScrollConfig);
           engine.start();
           break;
         case "scroll:stop":
@@ -151,15 +165,12 @@ export default defineContentScript({
           // `remember` marks a deliberate user change; the background also uses
           // this message to push content-type speed zones, which must not stick.
           const partial = data as Partial<ScrollConfig> & { remember?: boolean };
-          engine.updateConfig(partial);
+          applyConfig(partial);
           if (partial.focusModeEnabled !== undefined) {
             updateFocusMode(partial.focusModeEnabled);
           }
           if (partial.widgetEnabled !== undefined) {
             updateWidget(partial.widgetEnabled);
-          }
-          if (partial.speed !== undefined && partial.remember) {
-            rememberSpeed(partial.speed);
           }
           break;
         }

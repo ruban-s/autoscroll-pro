@@ -43,7 +43,7 @@ After installing dependencies, `wxt prepare` runs automatically to generate type
 
 **Storage** (`utils/storage.ts`) uses WXT's `storage.defineItem` from `wxt/utils/storage`. Settings use `sync:` prefix (cross-device), runtime state uses `local:` prefix. Note `storage.sync` does not sync to a Mozilla account on Firefox for Android, so mobile settings are effectively local.
 
-Per-site state (`local:siteSpeeds`, `local:siteContainers`) is keyed by hostname. Speed is only remembered when the `scroll:updateConfig` message carries `remember: true` — the background reuses that same message to push content-type speed zones, and those must not stick, or a zone edit in options would never apply again.
+Per-site state (`local:siteSpeeds`, `local:siteContainers`) is keyed by hostname. Speed is only remembered when the `scroll:updateConfig` message carries `remember: true` — the background reuses that same message to push content-type speed zones, and those must not stick, or a zone edit in options would never apply again. **Speed precedence is pinned-per-site > content-type zone > default**, enforced in `applyConfig()`: once a site has a pinned speed, incoming `speed` without `remember` is dropped. Without that, the zone push that lands right after detection silently overwrites the speed just restored from memory.
 
 ## Key Types
 

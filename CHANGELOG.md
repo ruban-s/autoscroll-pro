@@ -23,8 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   scrolling area by hand from the popup. The choice is saved per site and takes
   precedence over detection.
 - **Per-site speed memory.** A speed set by hand is remembered for that hostname
-  and restored on the next visit. Content-type speed zones are not remembered,
-  so changing a zone later still applies.
+  and restored on the next visit, and it outranks the content-type speed zone
+  the background pushes on load. Zones themselves are never remembered, so
+  editing a zone later still applies everywhere it has not been overridden.
 
 ### Fixed
 
