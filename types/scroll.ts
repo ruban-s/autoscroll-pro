@@ -1,11 +1,6 @@
 export type ScrollDirection = "down" | "up" | "left" | "right";
 export type ScrollMode = "smooth" | "step";
-export type ContentType =
-  | "general"
-  | "pdf"
-  | "manga"
-  | "blog"
-  | "infinite-scroll";
+export type ContentType = "general" | "pdf" | "manga" | "blog" | "infinite-scroll";
 
 export interface ScrollConfig {
   speed: number;

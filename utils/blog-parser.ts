@@ -34,9 +34,7 @@ export function detectBlog(doc: Document): DetectionResult | null {
       confidence += 0.3;
       scrollContainer = selector;
 
-      const blocks = el.querySelectorAll(
-        "p, h2, h3, h4, blockquote, pre, figure",
-      );
+      const blocks = el.querySelectorAll("p, h2, h3, h4, blockquote, pre, figure");
       articleSections = blocks.length;
 
       if (articleSections > 5) confidence += 0.2;

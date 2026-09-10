@@ -1,12 +1,10 @@
-import type { ScrollConfig, ScrollState, ContentType } from "@/types";
-import { INTERACTION_RESUME_DELAY_MS, END_GRACE_MS } from "./constants";
+import type { ContentType, ScrollConfig, ScrollState } from "@/types";
+import { END_GRACE_MS, INTERACTION_RESUME_DELAY_MS } from "./constants";
 
 const SCROLL_EPSILON = 1;
 
 export function isScrollable(el: Element, vertical: boolean): boolean {
-  const room = vertical
-    ? el.scrollHeight - el.clientHeight
-    : el.scrollWidth - el.clientWidth;
+  const room = vertical ? el.scrollHeight - el.clientHeight : el.scrollWidth - el.clientWidth;
   if (room <= SCROLL_EPSILON) return false;
 
   const root = document.scrollingElement ?? document.documentElement;
@@ -19,10 +17,7 @@ export function isScrollable(el: Element, vertical: boolean): boolean {
   return overflow === "auto" || overflow === "scroll" || overflow === "overlay";
 }
 
-export function pickScrollTarget(
-  hint: Element | null,
-  vertical: boolean,
-): Element {
+export function pickScrollTarget(hint: Element | null, vertical: boolean): Element {
   const root = document.scrollingElement ?? document.documentElement;
 
   for (let el: Element | null = hint; el; el = el.parentElement) {
@@ -247,8 +242,7 @@ export class ScrollEngine {
 
   private scrollBy(amount: number) {
     const el = this.getScrollTarget();
-    const backwards =
-      this.config.direction === "up" || this.config.direction === "left";
+    const backwards = this.config.direction === "up" || this.config.direction === "left";
 
     const total = (backwards ? -amount : amount) + this.subPixel;
     const whole = Math.trunc(total);
@@ -294,7 +288,7 @@ export class ScrollEngine {
   }
 
   private speedToPx(speed: number): number {
-    return 0.5 + Math.pow(speed / 100, 2) * 29.5;
+    return 0.5 + (speed / 100) ** 2 * 29.5;
   }
 
   private getProgress(): number {
@@ -327,10 +321,7 @@ export class ScrollEngine {
 
     if (this.endSinceMs === 0) this.endSinceMs = now;
 
-    return (
-      now - this.endSinceMs >= END_GRACE_MS &&
-      now - this.lastGrowthMs >= END_GRACE_MS
-    );
+    return now - this.endSinceMs >= END_GRACE_MS && now - this.lastGrowthMs >= END_GRACE_MS;
   }
 
   private isAtEnd(): boolean {

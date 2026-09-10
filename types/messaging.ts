@@ -1,6 +1,5 @@
-import type { ScrollConfig, ScrollState, ContentType } from "./scroll";
-import type { ScrollProfile } from "./profile";
-import type { ResumePosition } from "./profile";
+import type { ResumePosition, ScrollProfile } from "./profile";
+import type { ContentType, ScrollConfig, ScrollState } from "./scroll";
 
 export interface ProtocolMap {
   "scroll:start": (config: ScrollConfig) => void;

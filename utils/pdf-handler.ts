@@ -15,10 +15,7 @@ const PDF_VIEWER_SELECTORS: Record<string, string> = {
   'embed[type="application/pdf"]': "embed",
 };
 
-export function detectPdf(
-  doc: Document,
-  url: string,
-): DetectionResult | null {
+export function detectPdf(doc: Document, url: string): DetectionResult | null {
   for (const pattern of PDF_URL_PATTERNS) {
     if (pattern.test(url)) {
       return {
@@ -32,9 +29,7 @@ export function detectPdf(
     }
   }
 
-  const embed = doc.querySelector(
-    'embed[type="application/pdf"], object[type="application/pdf"]',
-  );
+  const embed = doc.querySelector('embed[type="application/pdf"], object[type="application/pdf"]');
   if (embed) {
     return {
       type: "pdf",
@@ -43,9 +38,7 @@ export function detectPdf(
     };
   }
 
-  const pdfIframe = doc.querySelector(
-    'iframe[src*=".pdf"], iframe[src*="viewer"]',
-  );
+  const pdfIframe = doc.querySelector('iframe[src*=".pdf"], iframe[src*="viewer"]');
   if (pdfIframe) {
     return {
       type: "pdf",

@@ -1,9 +1,6 @@
 import type { ScrollProfile } from "@/types";
 
-export function matchProfile(
-  url: string,
-  profiles: ScrollProfile[],
-): ScrollProfile | null {
+export function matchProfile(url: string, profiles: ScrollProfile[]): ScrollProfile | null {
   for (const profile of profiles) {
     for (const pattern of profile.sitePatterns) {
       if (matchUrlPattern(url, pattern)) {

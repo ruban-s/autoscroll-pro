@@ -1,10 +1,10 @@
+export type { DetectionResult } from "./content";
+export type { ProtocolMap } from "./messaging";
+export type { ResumePosition, ScrollProfile } from "./profile";
 export type {
-  ScrollDirection,
-  ScrollMode,
   ContentType,
   ScrollConfig,
+  ScrollDirection,
+  ScrollMode,
   ScrollState,
 } from "./scroll";
-export type { DetectionResult } from "./content";
-export type { ScrollProfile, ResumePosition } from "./profile";
-export type { ProtocolMap } from "./messaging";

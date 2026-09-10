@@ -27,13 +27,9 @@ const READER_SELECTORS = [
   "#content-chapter",
 ];
 
-const NEXT_CHAPTER_PATTERNS =
-  /next\s*chapter|next\s*ep|다음\s*화|次.*話|siguiente/i;
+const NEXT_CHAPTER_PATTERNS = /next\s*chapter|next\s*ep|다음\s*화|次.*話|siguiente/i;
 
-export function detectManga(
-  doc: Document,
-  url: string,
-): DetectionResult | null {
+export function detectManga(doc: Document, url: string): DetectionResult | null {
   let confidence = 0;
   let scrollContainer: string | undefined;
   let nextChapterUrl: string | undefined;
@@ -54,9 +50,7 @@ export function detectManga(
     }
   }
 
-  const images = doc.querySelectorAll(
-    "img[src], img[data-src], img[data-lazy-src]",
-  );
+  const images = doc.querySelectorAll("img[src], img[data-src], img[data-lazy-src]");
   let tallImageCount = 0;
   for (const img of images) {
     const el = img as HTMLImageElement;

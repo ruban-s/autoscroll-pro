@@ -1,4 +1,4 @@
-import type { ScrollConfig, ContentType } from "@/types";
+import type { ContentType, ScrollConfig } from "@/types";
 
 export const DEFAULT_CONFIG: ScrollConfig = {
   speed: 30,
