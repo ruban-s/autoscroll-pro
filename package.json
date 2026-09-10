@@ -14,6 +14,9 @@
     "zip:firefox": "wxt zip --browser firefox --mv3",
     "zip:all": "wxt zip && wxt zip --browser firefox --mv3",
     "check": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write",
+    "format": "biome format . --write",
     "postinstall": "wxt prepare"
   },
   "dependencies": {
@@ -24,6 +27,7 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
