@@ -2,7 +2,7 @@
   "name": "autoscroll-pro",
   "description": "Smart auto-scroll for PDFs, manga, blogs, and the web",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -33,7 +33,7 @@
     "@types/react-dom": "^19.2.7",
     "@wxt-dev/module-react": "^1.2.2",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "wxt": "^0.21.4"
   }
 }
