@@ -1,0 +1,81 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What This Is
+
+AutoScroll Pro — a cross-browser extension for smart auto-scrolling of PDFs, manga/manhwa, blogs, and general web pages. Built with WXT (Manifest V3), React 19, Tailwind CSS 4, TypeScript.
+
+## Commands
+
+```bash
+pnpm dev              # Dev server (Chrome)
+pnpm dev:firefox      # Dev server (Firefox)
+pnpm build            # Production build (Chrome MV3)
+pnpm build:firefox    # Production build (Firefox)
+pnpm build:all        # Build both browsers
+pnpm check            # TypeScript type check (tsc --noEmit)
+pnpm zip              # Create distributable .zip (Chrome)
+pnpm zip:firefox      # Create distributable .zip (Firefox)
+```
+
+After installing dependencies, `wxt prepare` runs automatically to generate types in `.wxt/`.
+
+## Architecture
+
+**Extension entry points** live in `entrypoints/` — WXT auto-discovers them by filename convention:
+
+- `background/index.ts` — Service worker. Orchestrates keyboard commands, badge updates, and message routing. Never scrolls directly. **The MV3 worker is evicted while idle, so its module-level `Map`s are caches, never the source of truth** — toggle state is read back from the page via `scroll:getState`.
+- `scroller.content.ts` — The only content script, injected on all URLs. Runs content detection, instantiates `ScrollEngine`, listens for control messages from background/popup.
+- `popup/` — React app (320px wide). Play/pause toggle, speed slider, direction picker, progress bar.
+
+**Core scroll logic** is in `utils/scroll-engine.ts` — a standalone `ScrollEngine` class:
+- Smooth mode uses `requestAnimationFrame`; step mode uses `setInterval`.
+- Speed 1–100 maps to 0.5–30 px/frame via exponential curve (`0.5 + (speed/100)² × 29.5`), with sub-pixel remainder carried between frames so speed 1 still moves.
+- Auto-pauses on user interaction (wheel/mousedown/touchstart), auto-resumes after 2s.
+- Stops at end only after `END_GRACE_MS` with no growth in `scrollHeight`, so lazy-loaded and infinite-scroll pages keep going.
+
+**Picking the scroll target is the part that breaks pages.** Never assume the document scrolls, and never trust a detector's `scrollContainer` selector — those selectors (`article`, `.reader-area`) name the *content*, which is usually not the scroller. `pickScrollTarget()` validates a candidate with `isScrollable()` (needs real overflow room *and* an `overflow` of auto/scroll/overlay), climbs to the nearest scrollable ancestor, falls back to the document, then to whatever scrolls under the viewport centre (`elementsFromPoint`) for app-shell layouts. Scrolling uses `scrollTo({ behavior: "instant" })` — a plain `scrollTop +=` is animated by a page's CSS `scroll-behavior: smooth` and fights every frame. `scroll-snap-type` is disabled on the target while scrolling and restored on stop.
+
+**Message passing** is raw `browser.runtime.onMessage` with `{ type, data }` envelopes, typed by `ProtocolMap` (`types/messaging.ts`) as the documented contract. All messages are namespaced (e.g., `scroll:start`, `scroll:stateChanged`, `content:detected`). Flow: Popup → Background → Content Script, and Content Script → Background for events. The content script sends its own `location.href` with `content:detected`; the background must not read `sender.tab.url`, which needs a host permission this extension does not request.
+
+**Storage** (`utils/storage.ts`) uses WXT's `storage.defineItem` from `wxt/utils/storage`. Settings use `sync:` prefix (cross-device), runtime state uses `local:` prefix.
+
+## Key Types
+
+- `ScrollConfig` — speed, direction, mode, timer, auto-pause flags
+- `ScrollState` — isScrolling, progress %, contentType, elapsed time
+- `ContentType` — `"general" | "pdf" | "manga" | "blog" | "infinite-scroll"`
+- `ProtocolMap` — typed message protocol between extension components
+
+All types barrel-exported from `types/index.ts`. Import via `@/types`.
+
+## Path Aliases
+
+`@/` and `~/` both resolve to project root (configured in `.wxt/tsconfig.json`).
+
+## Store Policy
+
+Chrome Web Store rejected 0.2.0 under **Use of Permissions** for declaring `scripting` and never calling it. Only request a permission the code actually uses — `permissions` is now `["storage", "contextMenus"]`. `activeTab` went too: nothing called it once the content script started sending its own URL.
+
+## Known Limitations
+
+- **Chrome's built-in PDF viewer cannot be scrolled.** It renders inside an internal plugin document that content scripts cannot reach, so the `#viewer` entry in `pdf-handler.ts` never matches there. PDF auto-scroll works on pdf.js viewers (including Firefox's) only.
+- **Top frame only.** `allFrames` is off, so content inside a cross-origin iframe will not scroll. Turning it on would make every ad frame run its own engine and fight over the badge.
+
+## Planned but Not Yet Implemented
+
+(none currently)
+
+## Git Commit Rules
+
+- **No author attribution.** Never add `Co-Authored-By` or similar lines.
+- **Commit by scope.** One commit per feature/fix. Don't bundle unrelated changes.
+- **Short message format:** `feat: <what it does>` or `fix: <what it fixes>`
+- **Under 72 chars.** Describe what, not how. Diff shows how.
+- **Prefixes:**
+  - `feat:` — new functionality
+  - `fix:` — bug fix
+  - `refactor:` — restructuring without behavior change
+  - `chore:` — tooling, deps, config
+- **Multi-line for complex changes:** First line = summary, blank line, then bullet points.
