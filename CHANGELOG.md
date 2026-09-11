@@ -2,8 +2,41 @@
 
 All notable changes to AutoScroll Pro are documented here.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.3.1] - 2026-09-11
+
+### Fixed
+
+- **Auto-advance dropped the next chapter if the browser evicted the service
+  worker mid-navigation.** The pending tab, its content type and its next-chapter
+  URL lived in module-level `Map`s, which an MV3 worker loses the moment it is
+  evicted, so `tabs.onUpdated` woke to an empty set and the new page never
+  started scrolling. All three now live in `storage.session`.
+- **Resume positions were never saved.** They were written to `storage.sync`,
+  where 50 full URLs overflow the 8KB per-item quota; every write rejected, and
+  the rejection was discarded. They are stored locally now, and a failed write
+  is reported instead of swallowed.
+- **Resume did nothing on reader and app-shell layouts.** The position was read
+  from `document.scrollingElement` and restored with `window.scrollTo`, but on a
+  page whose document does not scroll that saves and restores a permanent zero.
+  Both ends now use the element the engine actually scrolls.
+- **The floating widget froze in step mode.** `startStepMode()` never emitted
+  state, so the progress ring and the play glyph stopped updating between start
+  and stop.
+- **The Shortcuts page showed the defaults rather than the real bindings.** It
+  rendered a cached copy from storage, so a shortcut rebound in the browser's
+  own editor still displayed as `Alt+S`. It now reads `commands.getAll()`.
+- **Badge writes could take down a message handler on Firefox for Android**,
+  which exposes `action` without badge support. They are guarded.
+
+### Changed
+
+- `strict_min_version` is now `115.0`, the first Firefox with
+  `storage.session`. Firefox 109 to 114 are no longer supported.
+
+### Removed
+
+- The unused `profile:getForSite` and `profile:save` message handlers, and the
+  `customShortcuts` storage item that nothing wrote to.
 
 ## [0.3.0] - 2026-09-10
 
@@ -147,6 +180,7 @@ Initial release.
 - Auto-pause on user interaction with auto-resume after 2 seconds.
 - Dark mode.
 
+[0.3.1]: https://github.com/ruban-s/autoscroll-pro/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/ruban-s/autoscroll-pro/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/ruban-s/autoscroll-pro/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/ruban-s/autoscroll-pro/compare/v0.1.1...v0.2.0

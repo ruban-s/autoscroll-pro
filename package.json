@@ -2,7 +2,7 @@
   "name": "autoscroll-pro",
   "description": "Hands-free scrolling for blogs, manga, PDFs and web apps. No host permissions, no tracking.",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "scripts": {
     "dev": "wxt",
