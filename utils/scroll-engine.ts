@@ -236,6 +236,7 @@ export class ScrollEngine {
       }
 
       this.scrollBy(this.config.stepSize);
+      this.emitState();
 
       if (this.shouldStop()) {
         if (this.config.loopEnabled) {
