@@ -20,7 +20,6 @@ import type {
 } from "@/types";
 import { DEFAULT_CONFIG, DEFAULT_SPEED_ZONES } from "@/utils/constants";
 import {
-  customShortcuts,
   defaultConfig,
   profiles as profilesSetting,
   speedZones,
@@ -509,17 +508,17 @@ function ProfileEditor({
 }
 
 function ShortcutSettings() {
-  const [shortcuts, setShortcuts] = useState<Record<string, string>>({});
+  const [commands, setCommands] = useState<Browser.commands.Command[] | null>(null);
 
   useEffect(() => {
-    customShortcuts.getValue().then(setShortcuts);
+    // Read the live bindings: a rebind in the browser's own shortcut editor is
+    // invisible to storage, so anything cached here would be a stale lie.
+    if (typeof browser.commands === "undefined") {
+      setCommands([]);
+      return;
+    }
+    browser.commands.getAll().then(setCommands);
   }, []);
-
-  const labels: Record<string, string> = {
-    toggleScroll: "Toggle Scroll",
-    speedUp: "Speed Up",
-    speedDown: "Speed Down",
-  };
 
   return (
     <div className="space-y-6">
@@ -532,23 +531,34 @@ function ShortcutSettings() {
         </p>
       </div>
 
+      {commands?.length === 0 && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Keyboard shortcuts are not available on this browser.
+        </p>
+      )}
+
       <div className="space-y-3">
-        {Object.entries(shortcuts).map(([key, value]) => (
+        {commands?.map((command) => (
           <div
-            key={key}
+            key={command.name}
             className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
           >
-            <span className="text-gray-700 dark:text-gray-300">{labels[key] ?? key}</span>
+            <span className="text-gray-700 dark:text-gray-300">
+              {/* Chrome injects _execute_action with an empty description. */}
+              {command.description || "Open popup"}
+            </span>
             <kbd className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono text-gray-600 dark:text-gray-400">
-              {value}
+              {command.shortcut || "Not set"}
             </kbd>
           </div>
         ))}
       </div>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500">
-        To change shortcuts, visit chrome://extensions/shortcuts
-      </p>
+      {commands != null && commands.length > 0 && (
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          To change shortcuts, visit chrome://extensions/shortcuts
+        </p>
+      )}
     </div>
   );
 }
@@ -604,7 +614,6 @@ function AboutSection() {
       speedZones: await speedZones.getValue(),
       profiles: await profilesSetting.getValue(),
       theme: await themeSetting.getValue(),
-      shortcuts: await customShortcuts.getValue(),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -628,7 +637,6 @@ function AboutSection() {
         if (data.speedZones) await speedZones.setValue(data.speedZones);
         if (data.profiles) await profilesSetting.setValue(data.profiles);
         if (data.theme) await themeSetting.setValue(data.theme);
-        if (data.shortcuts) await customShortcuts.setValue(data.shortcuts);
         setStatus("Imported!");
         setTimeout(() => setStatus(null), 2000);
       } catch {
