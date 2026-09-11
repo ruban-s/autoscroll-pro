@@ -1,4 +1,4 @@
-import type { ResumePosition, ScrollProfile } from "./profile";
+import type { ResumePosition } from "./profile";
 import type { ContentType, ScrollConfig, ScrollState } from "./scroll";
 
 export interface ProtocolMap {
@@ -16,8 +16,6 @@ export interface ProtocolMap {
     url: string;
     nextChapterUrl?: string;
   }) => void;
-  "profile:getForSite": (url: string) => ScrollProfile | null;
-  "profile:save": (profile: ScrollProfile) => void;
   "resume:save": (pos: ResumePosition) => void;
   "resume:get": (url: string) => ResumePosition | null;
   "resume:restore": (pos: ResumePosition) => void;

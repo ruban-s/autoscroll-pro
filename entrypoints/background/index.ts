@@ -1,11 +1,15 @@
-import type { ResumePosition, ScrollConfig, ScrollState } from "@/types";
+import type { ContentType, ResumePosition, ScrollConfig, ScrollState } from "@/types";
 import { RESUME_POSITION_MAX_AGE_MS } from "@/utils/constants";
 import { matchProfile } from "@/utils/profiler";
-import { defaultConfig, profiles, resumePositions, speedZones } from "@/utils/storage";
-
-const tabContentTypes = new Map<number, string>();
-const tabNextChapter = new Map<number, string>();
-const tabAutoStartPending = new Set<number>();
+import {
+  defaultConfig,
+  profiles,
+  resumePositions,
+  speedZones,
+  tabAutoStartPending,
+  tabContentTypes,
+  tabNextChapter,
+} from "@/utils/storage";
 
 // The MV3 worker is evicted while idle, so its Maps cannot be trusted for
 // toggle state — ask the page, which is the only durable source.
@@ -20,21 +24,33 @@ async function isTabScrolling(tabId: number): Promise<boolean> {
   }
 }
 
+// Firefox for Android exposes `action` without badge support; swallow the
+// rejection rather than let it kill the surrounding handler.
+async function setBadge(tabId: number, text: string, color?: string) {
+  try {
+    await browser.action.setBadgeText({ text, tabId });
+    if (color) await browser.action.setBadgeBackgroundColor({ color, tabId });
+  } catch {}
+}
+
+async function zoneSpeedFor(tabId: number): Promise<number | undefined> {
+  const types = await tabContentTypes.getValue();
+  const type = types[tabId];
+  if (!type) return undefined;
+  const zones = await speedZones.getValue();
+  return zones[type];
+}
+
 export default defineBackground(() => {
   // Firefox for Android implements neither menus nor commands; touching either
   // at top level throws and takes the whole background script down with it.
   const hasContextMenus = typeof browser.contextMenus !== "undefined";
   const hasCommands = typeof browser.commands !== "undefined";
 
-  async function startScroll(tabId: number, config: ScrollConfig) {
-    const startConfig = { ...config };
-    const contentType = tabContentTypes.get(tabId);
-    if (contentType) {
-      const zones = await speedZones.getValue();
-      const zoneSpeed = zones[contentType as keyof typeof zones];
-      if (zoneSpeed != null) startConfig.speed = zoneSpeed;
-    }
-    await browser.tabs.sendMessage(tabId, { type: "scroll:start", data: startConfig });
+  async function startScroll(tabId: number, config: Partial<ScrollConfig>) {
+    const speed = await zoneSpeedFor(tabId);
+    const data = speed != null ? { ...config, speed } : config;
+    await browser.tabs.sendMessage(tabId, { type: "scroll:start", data });
   }
 
   async function toggleScroll(tabId: number, config: ScrollConfig) {
@@ -111,21 +127,6 @@ export default defineBackground(() => {
     return tab?.id ?? null;
   }
 
-  async function sendStartWithZone(
-    tabId: number,
-    message: { type: string; data?: Partial<ScrollConfig> },
-  ) {
-    const contentType = tabContentTypes.get(tabId);
-    if (contentType) {
-      const zones = await speedZones.getValue();
-      const zoneSpeed = zones[contentType as keyof typeof zones];
-      if (zoneSpeed != null && message.data) {
-        message.data.speed = zoneSpeed;
-      }
-    }
-    browser.tabs.sendMessage(tabId, message).catch(() => {});
-  }
-
   browser.runtime.onMessage.addListener((message, sender) => {
     const tabId = sender.tab?.id;
 
@@ -138,7 +139,7 @@ export default defineBackground(() => {
         getActiveTabId().then((id) => {
           if (!id) return;
           if (message.type === "scroll:start") {
-            sendStartWithZone(id, message);
+            startScroll(id, message.data as Partial<ScrollConfig>).catch(() => {});
           } else {
             browser.tabs.sendMessage(id, message).catch(() => {});
           }
@@ -149,7 +150,7 @@ export default defineBackground(() => {
 
     switch (message.type) {
       case "scroll:start":
-        sendStartWithZone(tabId, message);
+        startScroll(tabId, message.data as Partial<ScrollConfig>).catch(() => {});
         break;
       case "scroll:stop":
       case "scroll:updateConfig":
@@ -160,112 +161,37 @@ export default defineBackground(() => {
         updateBadge(tabId, message.data as ScrollState);
         break;
       }
-      case "scroll:finished": {
-        browser.action.setBadgeText({ text: "", tabId });
-        const nextUrl = tabNextChapter.get(tabId);
-        if (nextUrl) {
-          defaultConfig.getValue().then((config) => {
-            if (config.autoAdvanceEnabled) {
-              tabNextChapter.delete(tabId);
-              tabAutoStartPending.add(tabId);
-              browser.action.setBadgeText({ text: ">>", tabId });
-              browser.action.setBadgeBackgroundColor({ color: "#6366f1", tabId });
-              browser.tabs.update(tabId, { url: nextUrl });
-            }
-          });
-        }
+      case "scroll:finished":
+        advanceOrClear(tabId);
         break;
-      }
       case "scroll:interactionPause":
-        browser.action.setBadgeText({ text: "||", tabId });
-        browser.action.setBadgeBackgroundColor({ color: "#f59e0b", tabId });
+        setBadge(tabId, "||", "#f59e0b");
         break;
-      case "content:detected": {
-        const detected = message.data as {
-          type: string;
-          confidence: number;
-          url: string;
-          nextChapterUrl?: string;
-        };
-        tabContentTypes.set(tabId, detected.type);
-
-        if (detected.nextChapterUrl && detected.url) {
-          try {
-            const next = new URL(detected.nextChapterUrl, detected.url);
-            const current = new URL(detected.url);
-            if (
-              (next.protocol === "http:" || next.protocol === "https:") &&
-              next.origin === current.origin
-            ) {
-              tabNextChapter.set(tabId, next.href);
-            }
-          } catch {}
-        }
-
-        speedZones.getValue().then((zones) => {
-          const zoneSpeed = zones[detected.type as keyof typeof zones];
-          if (zoneSpeed != null) {
-            browser.tabs.sendMessage(tabId, {
-              type: "scroll:updateConfig",
-              data: { speed: zoneSpeed },
-            });
-          }
-        });
-
-        const url = detected.url;
-        if (url) {
-          profiles.getValue().then((list) => {
-            const match = matchProfile(url, list);
-            if (match && Object.keys(match.config).length > 0) {
-              browser.tabs
-                .sendMessage(tabId, {
-                  type: "scroll:updateConfig",
-                  data: match.config,
-                })
-                .catch(() => {});
-            }
-          });
-        }
-
+      case "content:detected":
+        recordDetection(
+          tabId,
+          message.data as {
+            type: ContentType;
+            confidence: number;
+            url: string;
+            nextChapterUrl?: string;
+          },
+        );
         break;
-      }
-      case "profile:getForSite": {
-        const url = message.data as string;
-        profiles.getValue().then((list) => {
-          const match = matchProfile(url, list);
-          sender.tab?.id &&
-            browser.tabs
-              .sendMessage(sender.tab.id, {
-                type: "scroll:updateConfig",
-                data: match?.config ?? {},
-              })
-              .catch(() => {});
-        });
-        break;
-      }
-      case "profile:save": {
-        const profile = message.data as import("@/types").ScrollProfile;
-        profiles.getValue().then((list) => {
-          const idx = list.findIndex((p) => p.id === profile.id);
-          const updated =
-            idx >= 0
-              ? list.map((p) => (p.id === profile.id ? { ...profile, updatedAt: Date.now() } : p))
-              : [...list, { ...profile, updatedAt: Date.now() }];
-          profiles.setValue(updated);
-        });
-        break;
-      }
       case "resume:save": {
         const pos = message.data as ResumePosition;
-        resumePositions.getValue().then((all) => {
-          all[pos.url] = pos;
-          const entries = Object.entries(all);
-          if (entries.length > 50) {
-            entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
-            all = Object.fromEntries(entries.slice(0, 50));
-          }
-          resumePositions.setValue(all);
-        });
+        resumePositions
+          .getValue()
+          .then((all) => {
+            all[pos.url] = pos;
+            const entries = Object.entries(all);
+            if (entries.length > 50) {
+              entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+              all = Object.fromEntries(entries.slice(0, 50));
+            }
+            return resumePositions.setValue(all);
+          })
+          .catch((e) => console.error("[autoscroll] resume save failed", e));
         break;
       }
       case "resume:get": {
@@ -273,13 +199,7 @@ export default defineBackground(() => {
         resumePositions.getValue().then((all) => {
           const pos = all[url];
           if (pos && Date.now() - pos.timestamp < RESUME_POSITION_MAX_AGE_MS) {
-            sender.tab?.id &&
-              browser.tabs
-                .sendMessage(sender.tab.id, {
-                  type: "resume:restore",
-                  data: pos,
-                })
-                .catch(() => {});
+            browser.tabs.sendMessage(tabId, { type: "resume:restore", data: pos }).catch(() => {});
           }
         });
         break;
@@ -287,36 +207,99 @@ export default defineBackground(() => {
     }
   });
 
-  browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if (changeInfo.status === "complete" && tabAutoStartPending.has(tabId)) {
-      tabAutoStartPending.delete(tabId);
-      defaultConfig.getValue().then(async (config) => {
-        const startConfig = { ...config };
-        const ct = tabContentTypes.get(tabId);
-        if (ct) {
-          const zones = await speedZones.getValue();
-          const zoneSpeed = zones[ct as keyof typeof zones];
-          if (zoneSpeed != null) startConfig.speed = zoneSpeed;
+  async function advanceOrClear(tabId: number) {
+    await setBadge(tabId, "");
+
+    const next = await tabNextChapter.getValue();
+    const nextUrl = next[tabId];
+    if (!nextUrl) return;
+
+    const config = await defaultConfig.getValue();
+    if (!config.autoAdvanceEnabled) return;
+
+    delete next[tabId];
+    await tabNextChapter.setValue(next);
+
+    const pending = await tabAutoStartPending.getValue();
+    await tabAutoStartPending.setValue([...new Set([...pending, tabId])]);
+
+    await setBadge(tabId, ">>", "#6366f1");
+    await browser.tabs.update(tabId, { url: nextUrl });
+  }
+
+  async function recordDetection(
+    tabId: number,
+    detected: { type: ContentType; confidence: number; url: string; nextChapterUrl?: string },
+  ) {
+    const types = await tabContentTypes.getValue();
+    types[tabId] = detected.type;
+    await tabContentTypes.setValue(types);
+
+    if (detected.nextChapterUrl && detected.url) {
+      try {
+        const next = new URL(detected.nextChapterUrl, detected.url);
+        const current = new URL(detected.url);
+        if (
+          (next.protocol === "http:" || next.protocol === "https:") &&
+          next.origin === current.origin
+        ) {
+          const all = await tabNextChapter.getValue();
+          all[tabId] = next.href;
+          await tabNextChapter.setValue(all);
         }
-        browser.tabs
-          .sendMessage(tabId, { type: "scroll:start", data: startConfig })
-          .catch(() => {});
-      });
+      } catch {}
     }
+
+    const zones = await speedZones.getValue();
+    const zoneSpeed = zones[detected.type];
+    if (zoneSpeed != null) {
+      browser.tabs
+        .sendMessage(tabId, { type: "scroll:updateConfig", data: { speed: zoneSpeed } })
+        .catch(() => {});
+    }
+
+    if (detected.url) {
+      const list = await profiles.getValue();
+      const match = matchProfile(detected.url, list);
+      if (match && Object.keys(match.config).length > 0) {
+        browser.tabs
+          .sendMessage(tabId, { type: "scroll:updateConfig", data: match.config })
+          .catch(() => {});
+      }
+    }
+  }
+
+  browser.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+    if (changeInfo.status !== "complete") return;
+
+    const pending = await tabAutoStartPending.getValue();
+    if (!pending.includes(tabId)) return;
+    await tabAutoStartPending.setValue(pending.filter((id) => id !== tabId));
+
+    const config = await defaultConfig.getValue();
+    await startScroll(tabId, config).catch(() => {});
   });
 
-  browser.tabs.onRemoved.addListener((tabId) => {
-    tabContentTypes.delete(tabId);
-    tabNextChapter.delete(tabId);
-    tabAutoStartPending.delete(tabId);
+  browser.tabs.onRemoved.addListener(async (tabId) => {
+    const [types, next, pending] = await Promise.all([
+      tabContentTypes.getValue(),
+      tabNextChapter.getValue(),
+      tabAutoStartPending.getValue(),
+    ]);
+    delete types[tabId];
+    delete next[tabId];
+    await Promise.all([
+      tabContentTypes.setValue(types),
+      tabNextChapter.setValue(next),
+      tabAutoStartPending.setValue(pending.filter((id) => id !== tabId)),
+    ]);
   });
 });
 
 function updateBadge(tabId: number, state: ScrollState) {
   if (state.isScrolling) {
-    browser.action.setBadgeText({ text: "ON", tabId });
-    browser.action.setBadgeBackgroundColor({ color: "#10b981", tabId });
+    setBadge(tabId, "ON", "#10b981");
   } else {
-    browser.action.setBadgeText({ text: "", tabId });
+    setBadge(tabId, "");
   }
 }

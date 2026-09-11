@@ -37,3 +37,18 @@ export const siteContainers = storage.defineItem<Record<string, string>>("local:
 export const widgetPosition = storage.defineItem<{ x: number; y: number }>("local:widgetPosition", {
   fallback: { x: 16, y: 100 },
 });
+
+// Per-tab background state. Session-scoped so it survives MV3 worker eviction
+// but never outlives the browser session that owns those tab ids.
+export const tabContentTypes = storage.defineItem<Record<number, ContentType>>(
+  "session:tabContentTypes",
+  { fallback: {} },
+);
+
+export const tabNextChapter = storage.defineItem<Record<number, string>>("session:tabNextChapter", {
+  fallback: {},
+});
+
+export const tabAutoStartPending = storage.defineItem<number[]>("session:tabAutoStartPending", {
+  fallback: [],
+});
