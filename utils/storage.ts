@@ -18,8 +18,9 @@ export const profiles = storage.defineItem<ScrollProfile[]>("sync:profiles", {
   fallback: [],
 });
 
+// Local, not sync: 50 full hrefs overflow storage.sync's 8KB per-item quota.
 export const resumePositions = storage.defineItem<Record<string, ResumePosition>>(
-  "sync:resumePositions",
+  "local:resumePositions",
   {
     fallback: {},
   },
