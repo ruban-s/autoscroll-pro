@@ -105,8 +105,10 @@ export default defineContentScript({
 
     updateWidget(config.widgetEnabled);
 
+    // Must be the element the engine actually scrolls; on app-shell and reader
+    // layouts the document never moves, so reading it saves a permanent zero.
     function savePosition() {
-      const el = document.scrollingElement ?? document.documentElement;
+      const el = engine.getScrollTarget();
       const pos: ResumePosition = {
         url: location.href,
         scrollTop: el.scrollTop,
@@ -182,7 +184,11 @@ export default defineContentScript({
           return;
         case "resume:restore": {
           const pos = data as ResumePosition;
-          window.scrollTo(pos.scrollLeft, pos.scrollTop);
+          engine.getScrollTarget().scrollTo({
+            left: pos.scrollLeft,
+            top: pos.scrollTop,
+            behavior: "instant",
+          });
           break;
         }
       }

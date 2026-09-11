@@ -270,7 +270,7 @@ export class ScrollEngine {
     return this.config.direction === "down" || this.config.direction === "up";
   }
 
-  private getScrollTarget(): Element {
+  getScrollTarget(): Element {
     const vertical = this.isVertical();
     if (this.target?.isConnected && isScrollable(this.target, vertical)) {
       return this.target;
